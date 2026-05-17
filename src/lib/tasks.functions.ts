@@ -252,6 +252,43 @@ export const reorderDay = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const RescheduleSchema = z.object({
+  updates: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        scheduled_day: z.string().regex(ISO_DATE),
+        start_minute: z.number().int().min(0).max(1439),
+      }),
+    )
+    .min(1)
+    .max(100),
+});
+
+/**
+ * Bulk apply scheduling changes produced by the reflow engine.
+ * Each row gets new scheduled_day + scheduled_start in a single round-trip set.
+ */
+export const rescheduleTasks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => RescheduleSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await Promise.all(
+      data.updates.map((u) =>
+        supabase
+          .from("tasks")
+          .update({
+            scheduled_day: u.scheduled_day,
+            scheduled_start: startTsFromMinute(u.scheduled_day, u.start_minute),
+          })
+          .eq("id", u.id)
+          .eq("user_id", userId),
+      ),
+    );
+    return { ok: true, count: data.updates.length };
+  });
+
 export const carryUnfinished = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
