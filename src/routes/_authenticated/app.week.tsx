@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 import { WeekHeader } from "@/components/week-calendar/week-header";
 import { MiniCalendar } from "@/components/week-calendar/mini-calendar";
@@ -16,10 +17,12 @@ import {
 } from "@/components/week-calendar/time-grid";
 import { EventCard } from "@/components/week-calendar/event-card";
 import { CurrentTimeIndicator } from "@/components/week-calendar/current-time-indicator";
+import { DraggableTask } from "@/components/week-calendar/draggable-task";
 import { QuickAddBar } from "@/components/tasks/quick-add-bar";
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
 import { Button } from "@/components/ui/button";
-import { listWeekData } from "@/lib/tasks.functions";
+import { listWeekData, rescheduleTasks } from "@/lib/tasks.functions";
+import { reflowDay, type ReflowBlock, type ReflowTask } from "@/lib/queue/reflow";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/week")({
