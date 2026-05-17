@@ -44,42 +44,45 @@ export interface DayColumnGridProps {
 }
 
 /** Single day column body — draws horizontal hour lines + after-hours band. */
-export function DayColumnGrid({ isToday, isWeekend, children }: DayColumnGridProps) {
-  const lines = Array.from({ length: TOTAL_HOURS }, (_, i) => i);
-  const afterHoursTop = (AFTER_HOURS_HOUR - DAY_START_HOUR) * PX_PER_HOUR;
-  const afterHoursHeight = (DAY_END_HOUR - AFTER_HOURS_HOUR) * PX_PER_HOUR;
+export const DayColumnGrid = React.forwardRef<HTMLDivElement, DayColumnGridProps>(
+  function DayColumnGrid({ isToday, isWeekend, children }, ref) {
+    const lines = Array.from({ length: TOTAL_HOURS }, (_, i) => i);
+    const afterHoursTop = (AFTER_HOURS_HOUR - DAY_START_HOUR) * PX_PER_HOUR;
+    const afterHoursHeight = (DAY_END_HOUR - AFTER_HOURS_HOUR) * PX_PER_HOUR;
 
-  return (
-    <div
-      className={cn(
-        "relative flex-1 border-r border-border last:border-r-0",
-        isToday && "bg-primary/[0.025]",
-        isWeekend && !isToday && "bg-muted/30",
-      )}
-      style={{ height: GRID_HEIGHT, minWidth: 0 }}
-    >
-      {/* after-hours band */}
+    return (
       <div
-        className="pointer-events-none absolute inset-x-0 bg-after-hours/[0.06]"
-        style={{ top: afterHoursTop, height: afterHoursHeight }}
-      />
-      {/* hour lines */}
-      {lines.map((i) => (
+        ref={ref}
+        className={cn(
+          "relative flex-1 border-r border-border last:border-r-0",
+          isToday && "bg-primary/[0.025]",
+          isWeekend && !isToday && "bg-muted/30",
+        )}
+        style={{ height: GRID_HEIGHT, minWidth: 0 }}
+      >
+        {/* after-hours band */}
         <div
-          key={i}
-          className="pointer-events-none absolute inset-x-0 border-t border-border/60"
-          style={{ top: i * PX_PER_HOUR }}
+          className="pointer-events-none absolute inset-x-0 bg-after-hours/[0.06]"
+          style={{ top: afterHoursTop, height: afterHoursHeight }}
         />
-      ))}
-      {/* half-hour lines (subtle) */}
-      {lines.map((i) => (
-        <div
-          key={`h-${i}`}
-          className="pointer-events-none absolute inset-x-0 border-t border-dashed border-border/30"
-          style={{ top: i * PX_PER_HOUR + PX_PER_HOUR / 2 }}
-        />
-      ))}
-      {children}
-    </div>
-  );
-}
+        {/* hour lines */}
+        {lines.map((i) => (
+          <div
+            key={i}
+            className="pointer-events-none absolute inset-x-0 border-t border-border/60"
+            style={{ top: i * PX_PER_HOUR }}
+          />
+        ))}
+        {/* half-hour lines (subtle) */}
+        {lines.map((i) => (
+          <div
+            key={`h-${i}`}
+            className="pointer-events-none absolute inset-x-0 border-t border-dashed border-border/30"
+            style={{ top: i * PX_PER_HOUR + PX_PER_HOUR / 2 }}
+          />
+        ))}
+        {children}
+      </div>
+    );
+  },
+);
