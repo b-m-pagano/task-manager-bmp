@@ -8,6 +8,7 @@ import {
   FolderKanban,
   Tags,
   Settings,
+  Focus,
 } from "lucide-react";
 
 import {
@@ -26,6 +27,7 @@ const mainItems = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, exact: true },
   { title: "Semana", url: "/app/week", icon: Calendar },
   { title: "Hoje", url: "/app/today", icon: CalendarDays },
+  { title: "Foco", url: "/app/focus", icon: Focus },
   { title: "Inbox", url: "/app/inbox", icon: Inbox },
 ];
 
