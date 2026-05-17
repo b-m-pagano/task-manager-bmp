@@ -1,33 +1,67 @@
-# Proteção contra falhas de SSR
+## O problema
 
-Vou aplicar as 4 camadas de proteção recomendadas para TanStack Start, garantindo que qualquer erro de renderização no servidor seja capturado e mostre uma página de erro amigável ao invés de tela branca.
+O sistema parece instável porque há um **loop de redirecionamento** entre `/login` e `/app/week`. Veja o que está acontecendo:
 
-## O que será feito
+1. `src/routes/_authenticated.tsx` faz, no `beforeLoad`:
+   ```ts
+   const { data } = await supabase.auth.getSession();
+   if (!data.session) throw redirect({ to: "/login" });
+   ```
+2. `beforeLoad` roda **tanto no servidor (SSR) quanto no cliente**.
+3. No servidor não existe `localStorage`, então `supabase.auth.getSession()` **sempre retorna `null`** — independente de você estar logado.
+4. Resultado: toda navegação SSR (clicar num link, dar refresh, prefetch ao passar o mouse sobre um link com `defaultPreloadStaleTime: 0`) joga você de volta para `/login`.
+5. No cliente, a sessão existe → a `/login` te manda para `/app/week` → próximo SSR te manda de volta para `/login` → flicker, sensação de "travado".
 
-1. **`vite.config.ts`** — apontar o `tanstackStart.server.entry` para `src/server.ts`, garantindo que nosso wrapper seja realmente executado no build de produção.
+Os logs confirmam: você está autenticado (várias chamadas `/_serverFn/...` retornam 200 com token Bearer válido), mas a UI continua oscilando para `/login`.
 
-2. **`src/server.ts`** — wrapper com:
-   - import lazy do handler do TanStack (captura erros de inicialização de módulo)
-   - try/catch ao redor do `fetch`
-   - normalização de respostas 500 "engolidas" pelo h3 em uma página HTML legível
+Os erros antigos de `@dnd-kit/core`, `ai`, `@ai-sdk/openai-compatible` já foram resolvidos — não fazem mais parte do problema atual.
 
-3. **`src/lib/error-capture.ts`** — listeners globais (`error`, `unhandledrejection`) que guardam o último erro por 5s para correlacionar com respostas 500 sem stack.
+## Correção
 
-4. **`src/lib/error-page.ts`** — HTML estático auto-contido (sem dependências do app) com botões "Tentar novamente" e "Início". Já existe — vou verificar e ajustar se necessário.
+Mover a checagem de sessão para o cliente, mantendo a UX de redirect-to-login.
 
-5. **`src/router.tsx`** — adicionar `defaultErrorComponent` como rede de segurança extra para erros em runtime de rotas.
+### 1. `src/routes/_authenticated.tsx`
+- Remover `getSession()` do `beforeLoad`.
+- Trocar por uma checagem **client-side**: o componente `AppShell` usa um hook tipo `useAuthReady` que:
+  - chama `supabase.auth.getSession()` uma vez no `useEffect`,
+  - escuta `onAuthStateChange`,
+  - retorna `{ user, isReady }`.
+- Enquanto `!isReady`, renderiza um placeholder neutro (mesmo bg) — evita flash.
+- Quando `isReady && !user`, faz `router.navigate({ to: "/login" })`.
+- Quando `isReady && user`, renderiza o `<Outlet />`.
 
-6. **`src/routes/__root.tsx`** — já tem `errorComponent`; vou confirmar que está registrado corretamente.
+Isso elimina o redirect SSR-falso-negativo sem flash de conteúdo protegido (a UI fica em loading até o cliente confirmar sessão).
 
-## Resultado esperado
+### 2. `src/routes/login.tsx`
+- Usar o mesmo hook `useAuthReady` em vez de chamar `getSession()` direto.
+- Só redireciona para `/app/week` depois que `isReady === true`.
+- Evita o ping-pong quando o usuário chega na `/login` autenticado.
 
-- Erros de SSR aparecem nos Server Logs com stack trace completo.
-- Usuário nunca mais vê tela branca — sempre cai numa página de erro com opção de recarregar.
-- Glitches transitórios de build não derrubam o preview.
+### 3. Novo arquivo `src/hooks/use-auth-ready.ts`
+Hook compartilhado conforme o padrão recomendado para Supabase + TanStack Start:
+```ts
+export function useAuthReady() {
+  const [state, setState] = useState({ user: null, isReady: false });
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setState({ user: data.session?.user ?? null, isReady: true });
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setState({ user: session?.user ?? null, isReady: true });
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  return state;
+}
+```
 
-## Detalhes técnicos
+### 4. Verificação
+- Abrir `/app/week` logado → não deve mais piscar para `/login`.
+- Refresh em `/app/week` → continua na página (após pequeno flash de loading).
+- Logout via botão "Sair" → vai para `/login` e fica lá.
+- Acessar `/login` já logado → redireciona para `/app/week`.
 
-- `vite.config.ts` usa `defineConfig` de `@lovable.dev/vite-tanstack-config`; passar `tanstackStart: { server: { entry: "server" } }`.
-- `wrangler.jsonc` já aponta `main: "src/server.ts"` ✓
-- `src/server.ts` precisa ser reescrito com import dinâmico + `normalizeCatastrophicSsrResponse`.
-- Nenhuma mudança em rotas, componentes ou banco de dados.
+## Fora de escopo
+
+- Warning de hidratação `data-scribe-recorder-ready` (vem de uma extensão do navegador, não é bug do app).
+- Quaisquer mudanças visuais — só lógica de auth.
