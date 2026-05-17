@@ -134,7 +134,7 @@ export const updateTask = createServerFn({ method: "POST" })
   .inputValidator((input) => UpdateTaskSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { id, start_minute, scheduled_day, ...rest } = data;
-    const patch: Record<string, unknown> = { ...rest };
+    const patch: Record<string, any> = { ...rest };
     if (scheduled_day !== undefined) patch.scheduled_day = scheduled_day;
     if (start_minute !== undefined) {
       const day = scheduled_day ?? null;
