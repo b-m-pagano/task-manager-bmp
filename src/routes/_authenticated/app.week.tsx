@@ -72,8 +72,16 @@ function mapStatusForCard(s: RawTask["status"]): "pending" | "doing" | "done" {
 }
 
 function WeekPage() {
-  const [selected, setSelected] = useState(() => new Date());
-  const [cursor, setCursor] = useState(() => new Date());
+  const { day: daySearch } = Route.useSearch();
+  const initial = useMemo(() => {
+    if (daySearch) {
+      const [y, m, d] = daySearch.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return new Date();
+  }, [daySearch]);
+  const [selected, setSelected] = useState(initial);
+  const [cursor, setCursor] = useState(initial);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TaskDialogTask | null>(null);
   const [createDay, setCreateDay] = useState<string>(isoDay(new Date()));
