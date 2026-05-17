@@ -64,9 +64,10 @@ export function verifyState(state: string): { userId: string; nonce: string; ts:
 
 export function buildAuthUrl(opts: { userId: string; redirectUri: string }): string {
   const { clientId } = getClientCreds();
+  const nonceBytes = crypto.getRandomValues(new Uint8Array(16));
   const state = signState({
     userId: opts.userId,
-    nonce: b64url(crypto.getRandomValues(new Uint8Array(16)) as unknown as Buffer),
+    nonce: b64url(Buffer.from(nonceBytes)),
     ts: Date.now(),
   });
   const url = new URL(AUTH_URL);

@@ -71,7 +71,6 @@ export function CalendarSyncButton({ from, to, onSynced, autoSync = true }: Prop
       disabled={busy}
       className="shrink-0 gap-1.5"
       title="Sincronizar Google Calendar"
-      asChild={false}
     >
       {busy ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />

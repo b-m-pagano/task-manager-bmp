@@ -38,13 +38,13 @@ export const Route = createFileRoute("/api/public/google/callback")({
             ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
             : null;
 
-          const patch: Record<string, unknown> = {
+          const patch = {
             user_id: payload.userId,
             access_token: tokens.access_token,
             expires_at: expiresAt,
             updated_at: new Date().toISOString(),
+            ...(tokens.refresh_token ? { refresh_token: tokens.refresh_token } : {}),
           };
-          if (tokens.refresh_token) patch.refresh_token = tokens.refresh_token;
 
           const { error: dbErr } = await supabaseAdmin
             .from("google_connections")

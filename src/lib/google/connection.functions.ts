@@ -60,14 +60,13 @@ export const upsertGoogleSessionTokens = createServerFn({ method: "POST" })
     const expiresAt = data.expires_in
       ? new Date(Date.now() + data.expires_in * 1000).toISOString()
       : null;
-    // Não sobrescreve refresh_token existente com null.
-    const patch: Record<string, unknown> = {
+    const patch = {
       user_id: userId,
       access_token: data.access_token,
       expires_at: expiresAt,
       updated_at: new Date().toISOString(),
+      ...(data.refresh_token ? { refresh_token: data.refresh_token } : {}),
     };
-    if (data.refresh_token) patch.refresh_token = data.refresh_token;
     await supabase.from("google_connections").upsert(patch, { onConflict: "user_id" });
     return { ok: true };
   });
