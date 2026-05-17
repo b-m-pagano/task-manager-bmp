@@ -143,6 +143,73 @@ export const analyzeDay = createServerFn({ method: "POST" })
     const total = DAY_END - DAY_START;
     const free = Math.max(0, total - busy);
 
+    // ============= Risco por tarefa (heurística determinística) =============
+    // Simula a fila respeitando eventos bloqueantes para prever término real.
+    const blockingWindows = eventCtx
+      .filter((e) => e.blocking)
+      .map((e) => {
+        const [sh, sm] = e.startHHMM.split(":").map(Number);
+        const [eh, em] = e.endHHMM.split(":").map(Number);
+        return { start: sh * 60 + sm, end: eh * 60 + em };
+      })
+      .sort((a, b) => a.start - b.start);
+
+    function nextFreeSlot(from: number, duration: number): number {
+      let cursor = Math.max(from, DAY_START);
+      for (const w of blockingWindows) {
+        if (cursor + duration <= w.start) break;
+        if (cursor < w.end && cursor + duration > w.start) cursor = w.end;
+      }
+      return cursor;
+    }
+
+    const AFTER_HOURS = 18 * 60;
+    let runStack = DAY_START;
+    const taskRisks = taskCtx
+      .filter((t) => t.status !== "done" && t.status !== "skipped")
+      .map((t) => {
+        const desiredStart = Math.max(t.startMinute, runStack);
+        const actualStart = nextFreeSlot(desiredStart, t.durationMin);
+        const predictedEnd = actualStart + t.durationMin;
+        runStack = predictedEnd;
+
+        const scheduledEnd = t.startMinute + t.durationMin;
+        const delayMinutes = Math.max(0, predictedEnd - scheduledEnd);
+
+        // Risco de adiamento: combina extravasamento, tarde da noite e prioridade.
+        let risk = 0;
+        if (predictedEnd > DAY_END) risk += 70;
+        else if (predictedEnd > AFTER_HOURS) risk += 35;
+        if (delayMinutes >= 60) risk += 25;
+        else if (delayMinutes >= 15) risk += 10;
+        if (t.priority === "high" || t.priority === "urgent") risk += 5;
+        if (t.due && t.due < day) risk += 20; // já estourou prazo
+        risk = Math.min(100, risk);
+
+        const severity: "info" | "warn" | "high" =
+          risk >= 70 ? "high" : risk >= 35 ? "warn" : "info";
+
+        const reasonParts: string[] = [];
+        if (predictedEnd > DAY_END)
+          reasonParts.push("ultrapassa o fim do dia útil");
+        else if (predictedEnd > AFTER_HOURS)
+          reasonParts.push("termina após 18h");
+        if (delayMinutes > 0)
+          reasonParts.push(`atraso previsto de ${delayMinutes}min`);
+        if (t.due && t.due < day) reasonParts.push("prazo vencido");
+        if (reasonParts.length === 0) reasonParts.push("dentro do esperado");
+
+        return {
+          taskId: t.id,
+          title: t.title,
+          predictedEndMinute: predictedEnd,
+          delayMinutes,
+          postponementRisk: risk,
+          severity,
+          reason: reasonParts.join(" · "),
+        };
+      });
+
     // Heurística: dia sem dados → resposta determinística (evita chamada à IA).
     if (taskCtx.length === 0 && eventCtx.length === 0) {
       return {
@@ -151,6 +218,7 @@ export const analyzeDay = createServerFn({ method: "POST" })
         totalMinutes: 0,
         freeMinutes: free,
         suggestions: [],
+        taskRisks: [],
       };
     }
 
@@ -183,6 +251,7 @@ export const analyzeDay = createServerFn({ method: "POST" })
         totalMinutes: busy,
         freeMinutes: free,
         suggestions,
+        taskRisks,
       };
     }
 
@@ -199,6 +268,8 @@ export const analyzeDay = createServerFn({ method: "POST" })
       "- Se algo parece bem, diga isso no summary e devolva poucas sugestões.",
       "- Para reorganize/best_time, inclua taskIds e suggestedStartMinute quando útil.",
       "- Para overload, calcule um score 0–100 honesto.",
+      "- Considere taskRisks fornecidos: tarefas com risco alto merecem destaque nas sugestões.",
+      "- NÃO repita taskRisks no campo suggestions — eles são exibidos separadamente.",
       "- Linguagem: português do Brasil, tom leve, sem alarmismo.",
     ].join("\n");
 
@@ -210,6 +281,7 @@ export const analyzeDay = createServerFn({ method: "POST" })
         freeMinutes: free,
         events: eventCtx,
         tasks: taskCtx,
+        taskRisks,
       },
       null,
       0,
@@ -222,11 +294,12 @@ export const analyzeDay = createServerFn({ method: "POST" })
         system,
         prompt,
       });
-      // Garante consistência dos contadores (modelo às vezes inventa).
+      // Garante consistência dos contadores e injeta risks calculados localmente.
       return {
         ...object,
         totalMinutes: busy,
         freeMinutes: free,
+        taskRisks,
       };
     } catch (err) {
       console.error("[ai.analyzeDay] gateway error", err);
@@ -237,6 +310,7 @@ export const analyzeDay = createServerFn({ method: "POST" })
         totalMinutes: busy,
         freeMinutes: free,
         suggestions: [],
+        taskRisks,
       };
     }
   });
