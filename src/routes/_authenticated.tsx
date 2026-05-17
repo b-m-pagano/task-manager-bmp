@@ -1,21 +1,30 @@
-import { createFileRoute, redirect, Outlet, Link, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { createFileRoute, Outlet, Link, useRouter } from "@tanstack/react-router";
 import { Calendar, LayoutGrid, Inbox, Tags, Settings, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/use-auth-ready";
 
 export const Route = createFileRoute("/_authenticated")({
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) throw redirect({ to: "/login" });
-  },
   component: AppShell,
 });
 
 function AppShell() {
   const router = useRouter();
+  const { user, isReady } = useAuthReady();
+
+  useEffect(() => {
+    if (isReady && !user) router.navigate({ to: "/login" });
+  }, [isReady, user, router]);
+
   async function signOut() {
     await supabase.auth.signOut();
     router.navigate({ to: "/login" });
   }
+
+  if (!isReady || !user) {
+    return <div className="h-screen bg-background" />;
+  }
+
   return (
     <div className="flex h-screen bg-background text-foreground">
       <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-card/30 px-3 py-5 md:flex">

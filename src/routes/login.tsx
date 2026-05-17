@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/use-auth-ready";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -12,12 +12,11 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const { user, isReady } = useAuthReady();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/app/week" });
-    });
-  }, [navigate]);
+    if (isReady && user) navigate({ to: "/app/week" });
+  }, [isReady, user, navigate]);
 
   async function signIn() {
     setLoading(true);
