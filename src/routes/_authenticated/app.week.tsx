@@ -18,11 +18,12 @@ import {
 import { EventCard } from "@/components/week-calendar/event-card";
 import { CurrentTimeIndicator } from "@/components/week-calendar/current-time-indicator";
 import { DraggableTask } from "@/components/week-calendar/draggable-task";
+import { CalendarSyncButton } from "@/components/week-calendar/calendar-sync-button";
 import { QuickAddBar } from "@/components/tasks/quick-add-bar";
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
 import { Button } from "@/components/ui/button";
 import { listWeekData, rescheduleTasks } from "@/lib/tasks.functions";
-import { reflowDay, type ReflowBlock, type ReflowTask } from "@/lib/queue/reflow";
+import { reflowConflicts, reflowDay, type ReflowBlock, type ReflowTask } from "@/lib/queue/reflow";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/week")({
