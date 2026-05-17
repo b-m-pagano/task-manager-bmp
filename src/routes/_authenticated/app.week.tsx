@@ -3,8 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
-import { Plus, Sparkles, ArrowDownToLine } from "lucide-react";
+import { Plus, Sparkles, ArrowDownToLine, CalendarDays, Tags } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { WeekHeader } from "@/components/week-calendar/week-header";
 import { MiniCalendar } from "@/components/week-calendar/mini-calendar";
@@ -23,14 +24,21 @@ import { AiInsightsPanel } from "@/components/week-calendar/ai-insights-panel";
 import { QuickAddBar } from "@/components/tasks/quick-add-bar";
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { carryUnfinished, listWeekData, rescheduleTasks } from "@/lib/tasks.functions";
 import { reflowConflicts, reflowDay, type ReflowBlock, type ReflowTask } from "@/lib/queue/reflow";
 import { autoScheduleDay, type AutoTask, type AutoBlock } from "@/lib/queue/auto-schedule";
 import { cn } from "@/lib/utils";
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 export const Route = createFileRoute("/_authenticated/app/week")({
   component: WeekPage,
   head: () => ({ meta: [{ title: "Semana — FocusQueue" }] }),
+  validateSearch: (search) =>
+    z
+      .object({ day: z.string().regex(ISO_DATE).optional() })
+      .parse(search),
 });
 
 interface RawTask {
