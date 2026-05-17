@@ -19,6 +19,7 @@ import { EventCard } from "@/components/week-calendar/event-card";
 import { CurrentTimeIndicator } from "@/components/week-calendar/current-time-indicator";
 import { DraggableTask } from "@/components/week-calendar/draggable-task";
 import { CalendarSyncButton } from "@/components/week-calendar/calendar-sync-button";
+import { AiInsightsPanel } from "@/components/week-calendar/ai-insights-panel";
 import { QuickAddBar } from "@/components/tasks/quick-add-bar";
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
 import { Button } from "@/components/ui/button";
