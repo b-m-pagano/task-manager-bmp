@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { EventCard } from "./event-card";
 import { PX_PER_MIN, minuteToTop } from "./time-grid";
@@ -184,8 +185,5 @@ function PortalInto({
     };
   }, [host]);
   if (!mount) return null;
-  // We can't import react-dom/client here; use a tiny inline render via createPortal.
-  // Defer to runtime import to avoid SSR issues.
-  const ReactDOM = require("react-dom") as typeof import("react-dom");
-  return ReactDOM.createPortal(children, mount);
+  return createPortal(children, mount);
 }
