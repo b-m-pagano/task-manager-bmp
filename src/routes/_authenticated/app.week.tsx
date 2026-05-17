@@ -75,9 +75,23 @@ function WeekPage() {
   const daysISO = useMemo(() => days.map(isoDay), [days]);
 
   const listFn = useServerFn(listWeekData);
+  const rescheduleFn = useServerFn(rescheduleTasks);
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["week", daysISO[0]],
     queryFn: () => listFn({ data: { days: daysISO } }),
+  });
+
+  const columnRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  const rescheduleMut = useMutation({
+    mutationFn: (updates: { id: string; scheduled_day: string; start_minute: number }[]) =>
+      rescheduleFn({ data: { updates } }),
+    onError: () => {
+      toast.error("Não foi possível reagendar");
+      qc.invalidateQueries({ queryKey: ["week"] });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["week"] }),
   });
 
   const categories = (data?.categories ?? []) as { id: string; name: string; color: string }[];
