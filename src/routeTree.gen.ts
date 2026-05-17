@@ -13,6 +13,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppWeekRouteImport } from './routes/_authenticated/app.week'
+import { Route as AuthenticatedAppTodayRouteImport } from './routes/_authenticated/app.today'
+import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
+import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
+import { Route as AuthenticatedAppCategoriesRouteImport } from './routes/_authenticated/app.categories'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -33,15 +38,52 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAppWeekRoute = AuthenticatedAppWeekRouteImport.update({
+  id: '/app/week',
+  path: '/app/week',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppTodayRoute = AuthenticatedAppTodayRouteImport.update({
+  id: '/app/today',
+  path: '/app/today',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppSettingsRoute =
+  AuthenticatedAppSettingsRouteImport.update({
+    id: '/app/settings',
+    path: '/app/settings',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppInboxRoute = AuthenticatedAppInboxRouteImport.update({
+  id: '/app/inbox',
+  path: '/app/inbox',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppCategoriesRoute =
+  AuthenticatedAppCategoriesRouteImport.update({
+    id: '/app/categories',
+    path: '/app/categories',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/app/categories': typeof AuthenticatedAppCategoriesRoute
+  '/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/app/today': typeof AuthenticatedAppTodayRoute
+  '/app/week': typeof AuthenticatedAppWeekRoute
   '/app/': typeof AuthenticatedAppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/app/categories': typeof AuthenticatedAppCategoriesRoute
+  '/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/app/today': typeof AuthenticatedAppTodayRoute
+  '/app/week': typeof AuthenticatedAppWeekRoute
   '/app': typeof AuthenticatedAppIndexRoute
 }
 export interface FileRoutesById {
@@ -49,14 +91,45 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/_authenticated/app/categories': typeof AuthenticatedAppCategoriesRoute
+  '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/_authenticated/app/today': typeof AuthenticatedAppTodayRoute
+  '/_authenticated/app/week': typeof AuthenticatedAppWeekRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/app/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/app/categories'
+    | '/app/inbox'
+    | '/app/settings'
+    | '/app/today'
+    | '/app/week'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/app'
-  id: '__root__' | '/' | '/_authenticated' | '/login' | '/_authenticated/app/'
+  to:
+    | '/'
+    | '/login'
+    | '/app/categories'
+    | '/app/inbox'
+    | '/app/settings'
+    | '/app/today'
+    | '/app/week'
+    | '/app'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/login'
+    | '/_authenticated/app/categories'
+    | '/_authenticated/app/inbox'
+    | '/_authenticated/app/settings'
+    | '/_authenticated/app/today'
+    | '/_authenticated/app/week'
+    | '/_authenticated/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,14 +168,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/week': {
+      id: '/_authenticated/app/week'
+      path: '/app/week'
+      fullPath: '/app/week'
+      preLoaderRoute: typeof AuthenticatedAppWeekRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/today': {
+      id: '/_authenticated/app/today'
+      path: '/app/today'
+      fullPath: '/app/today'
+      preLoaderRoute: typeof AuthenticatedAppTodayRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/settings': {
+      id: '/_authenticated/app/settings'
+      path: '/app/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/inbox': {
+      id: '/_authenticated/app/inbox'
+      path: '/app/inbox'
+      fullPath: '/app/inbox'
+      preLoaderRoute: typeof AuthenticatedAppInboxRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/categories': {
+      id: '/_authenticated/app/categories'
+      path: '/app/categories'
+      fullPath: '/app/categories'
+      preLoaderRoute: typeof AuthenticatedAppCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAppCategoriesRoute: typeof AuthenticatedAppCategoriesRoute
+  AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
+  AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
+  AuthenticatedAppTodayRoute: typeof AuthenticatedAppTodayRoute
+  AuthenticatedAppWeekRoute: typeof AuthenticatedAppWeekRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAppCategoriesRoute: AuthenticatedAppCategoriesRoute,
+  AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
+  AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
+  AuthenticatedAppTodayRoute: AuthenticatedAppTodayRoute,
+  AuthenticatedAppWeekRoute: AuthenticatedAppWeekRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
 }
 
