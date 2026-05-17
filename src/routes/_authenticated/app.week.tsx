@@ -524,34 +524,6 @@ function WeekPage() {
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-[248px] shrink-0 flex-col border-r border-border bg-card/40 lg:flex">
-          <MiniCalendar
-            selected={selected}
-            onSelect={setSelected}
-            cursor={cursor}
-            onCursorChange={setCursor}
-          />
-          <div className="border-t border-border p-3">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Categorias
-            </p>
-            <ul className="space-y-1.5">
-              {categories.map((c) => (
-                <li key={c.id} className="flex items-center gap-2 text-xs">
-                  <span
-                    className="h-2.5 w-2.5 rounded-sm"
-                    style={{ backgroundColor: c.color }}
-                  />
-                  <span className="text-foreground">{c.name}</span>
-                </li>
-              ))}
-              {categories.length === 0 && (
-                <li className="text-xs text-muted-foreground">Nenhuma ainda</li>
-              )}
-            </ul>
-          </div>
-        </aside>
-
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex border-b border-border bg-background/85 backdrop-blur">
             <div className="w-16 shrink-0" />
