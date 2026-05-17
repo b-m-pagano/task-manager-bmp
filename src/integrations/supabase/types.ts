@@ -14,7 +14,222 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      calendar_events: {
+        Row: {
+          all_day: boolean
+          calendar_id: string
+          description: string | null
+          ends_at: string
+          google_event_id: string
+          id: string
+          starts_at: string
+          synced_at: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          all_day?: boolean
+          calendar_id?: string
+          description?: string | null
+          ends_at: string
+          google_event_id: string
+          id?: string
+          starts_at: string
+          synced_at?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          all_day?: boolean
+          calendar_id?: string
+          description?: string | null
+          ends_at?: string
+          google_event_id?: string
+          id?: string
+          starts_at?: string
+          synced_at?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          color: string
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_connections: {
+        Row: {
+          access_token: string | null
+          calendar_ids: string[]
+          expires_at: string | null
+          last_sync_at: string | null
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          calendar_ids?: string[]
+          expires_at?: string | null
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          calendar_ids?: string[]
+          expires_at?: string | null
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          actual_end: string | null
+          actual_start: string | null
+          category_id: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          estimated_minutes: number
+          id: string
+          parent_id: string | null
+          pinned_at: string | null
+          priority: Database["public"]["Enums"]["task_priority"]
+          queue_position: number
+          quick_note: string | null
+          scheduled_day: string
+          scheduled_end: string | null
+          scheduled_start: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_end?: string | null
+          actual_start?: string | null
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_minutes?: number
+          id?: string
+          parent_id?: string | null
+          pinned_at?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          queue_position?: number
+          quick_note?: string | null
+          scheduled_day?: string
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_end?: string | null
+          actual_start?: string | null
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_minutes?: number
+          id?: string
+          parent_id?: string | null
+          pinned_at?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          queue_position?: number
+          quick_note?: string | null
+          scheduled_day?: string
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_settings: {
+        Row: {
+          after_hours_minute: number
+          buffer_minutes: number
+          carry_unfinished: boolean
+          day_start_minute: number
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          after_hours_minute?: number
+          buffer_minutes?: number
+          carry_unfinished?: boolean
+          day_start_minute?: number
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          after_hours_minute?: number
+          buffer_minutes?: number
+          carry_unfinished?: boolean
+          day_start_minute?: number
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +238,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status: "pending" | "in_progress" | "done" | "skipped"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +366,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: ["pending", "in_progress", "done", "skipped"],
+    },
   },
 } as const
