@@ -61,7 +61,7 @@ export function EventCard({ event, category, project }: EventCardProps) {
   return (
     <div
       className={cn(
-        "group absolute inset-x-1 flex flex-col overflow-hidden rounded-md border border-border bg-card text-[11px] shadow-sm transition-[box-shadow,transform] hover:z-10 hover:shadow-md",
+        "group absolute inset-x-1 flex flex-col overflow-hidden rounded-md border border-border bg-card text-[11px] shadow-sm transition-[box-shadow,transform,top,height] duration-200 ease-out hover:z-10 hover:shadow-md",
         isDone && "opacity-55",
         priorityRing[event.priority],
       )}

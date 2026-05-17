@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 import { WeekHeader } from "@/components/week-calendar/week-header";
 import { MiniCalendar } from "@/components/week-calendar/mini-calendar";
@@ -16,10 +17,12 @@ import {
 } from "@/components/week-calendar/time-grid";
 import { EventCard } from "@/components/week-calendar/event-card";
 import { CurrentTimeIndicator } from "@/components/week-calendar/current-time-indicator";
+import { DraggableTask } from "@/components/week-calendar/draggable-task";
 import { QuickAddBar } from "@/components/tasks/quick-add-bar";
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
 import { Button } from "@/components/ui/button";
-import { listWeekData } from "@/lib/tasks.functions";
+import { listWeekData, rescheduleTasks } from "@/lib/tasks.functions";
+import { reflowDay, type ReflowBlock, type ReflowTask } from "@/lib/queue/reflow";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/week")({
@@ -72,9 +75,23 @@ function WeekPage() {
   const daysISO = useMemo(() => days.map(isoDay), [days]);
 
   const listFn = useServerFn(listWeekData);
+  const rescheduleFn = useServerFn(rescheduleTasks);
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["week", daysISO[0]],
     queryFn: () => listFn({ data: { days: daysISO } }),
+  });
+
+  const columnRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  const rescheduleMut = useMutation({
+    mutationFn: (updates: { id: string; scheduled_day: string; start_minute: number }[]) =>
+      rescheduleFn({ data: { updates } }),
+    onError: () => {
+      toast.error("Não foi possível reagendar");
+      qc.invalidateQueries({ queryKey: ["week"] });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["week"] }),
   });
 
   const categories = (data?.categories ?? []) as { id: string; name: string; color: string }[];
@@ -118,7 +135,87 @@ function WeekPage() {
     [data],
   );
 
-  // Global shortcuts: N=new, /=focus quick add
+  // Intelligent drop handler — uses reflow engine and persists via bulk reschedule.
+  const handleDrop = useCallback(
+    (taskId: string, drop: { day: string; startMinute: number }) => {
+      const all = (data?.tasks ?? []) as RawTask[];
+      const moved = all.find((t) => t.id === taskId);
+      if (!moved) return;
+
+      // If moving across days, just place the moved task — same-day reflow only
+      // affects tasks in the target day.
+      const oldDay = moved.scheduled_day;
+      const targetDay = drop.day;
+
+      // Build target-day task set (after virtually moving `moved` into it).
+      const targetTasksRaw = all.filter(
+        (t) => (t.scheduled_day === targetDay || t.id === taskId) && !t.parent_id,
+      );
+      const targetEvents: ReflowBlock[] = (data?.events ?? [])
+        .filter((e: any) => (e.starts_at ?? "").slice(0, 10) === targetDay)
+        .map((e: any) => {
+          const s = new Date(e.starts_at);
+          const en = new Date(e.ends_at);
+          return {
+            start: s.getHours() * 60 + s.getMinutes(),
+            end: en.getHours() * 60 + en.getMinutes(),
+          };
+        });
+
+      let stack = DAY_START_HOUR * 60;
+      const targetTasks: ReflowTask[] = targetTasksRaw.map((t) => {
+        const start =
+          t.id === taskId
+            ? drop.startMinute
+            : t.scheduled_start
+              ? tsToMinute(t.scheduled_start, stack)
+              : stack;
+        if (t.id !== taskId && !t.scheduled_start) stack = start + t.estimated_minutes;
+        return { id: t.id, start, duration: t.estimated_minutes };
+      });
+
+      const { changes } = reflowDay(targetTasks, targetEvents, taskId, drop.startMinute, {
+        dayStart: DAY_START_HOUR * 60,
+        buffer: 0,
+      });
+
+      // Always include the moved task even if its minute didn't change (day may have).
+      changes[taskId] = changes[taskId] ?? drop.startMinute;
+
+      const updates = Object.entries(changes).map(([id, startMinute]) => ({
+        id,
+        scheduled_day: targetDay,
+        start_minute: startMinute,
+      }));
+
+      // Optimistic patch of cached week data.
+      qc.setQueryData(["week", daysISO[0]], (prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tasks: prev.tasks.map((t: RawTask) => {
+            const upd = updates.find((u) => u.id === t.id);
+            if (!upd) return t;
+            const h = String(Math.floor(upd.start_minute / 60)).padStart(2, "0");
+            const m = String(upd.start_minute % 60).padStart(2, "0");
+            return {
+              ...t,
+              scheduled_day: upd.scheduled_day,
+              scheduled_start: `${upd.scheduled_day}T${h}:${m}:00`,
+            };
+          }),
+        };
+      });
+
+      rescheduleMut.mutate(updates);
+      if (oldDay !== targetDay) {
+        toast.success("Tarefa movida", { description: `→ ${targetDay}` });
+      }
+    },
+    [data, daysISO, qc, rescheduleMut],
+  );
+
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -245,7 +342,14 @@ function WeekPage() {
 
                 let stack = DAY_START_HOUR * 60; // for tasks without a time
                 return (
-                  <DayColumnGrid key={iso} isToday={isToday} isWeekend={isWeekend}>
+                  <DayColumnGrid
+                    key={iso}
+                    isToday={isToday}
+                    isWeekend={isWeekend}
+                    ref={(el) => {
+                      columnRefs.current[iso] = el;
+                    }}
+                  >
                     {/* Click empty area → quick create on that day */}
                     <button
                       type="button"
@@ -284,35 +388,25 @@ function WeekPage() {
                       const cat = t.category_id ? categoryById[t.category_id] : undefined;
                       const proj = t.project_id ? projectById[t.project_id] : undefined;
                       return (
-                        <div
+                        <DraggableTask
                           key={t.id}
-                          className="relative z-[1]"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditById(t.id);
+                          event={{
+                            id: t.id,
+                            title: t.title,
+                            day: iso,
+                            startMinute: startMin,
+                            durationMinutes: t.estimated_minutes,
+                            categoryId: t.category_id ?? "",
+                            projectId: t.project_id ?? undefined,
+                            status: mapStatusForCard(t.status),
+                            priority: t.priority,
                           }}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") openEditById(t.id);
-                          }}
-                        >
-                          <EventCard
-                            event={{
-                              id: t.id,
-                              title: t.title,
-                              day: iso,
-                              startMinute: startMin,
-                              durationMinutes: t.estimated_minutes,
-                              categoryId: t.category_id ?? "",
-                              projectId: t.project_id ?? undefined,
-                              status: mapStatusForCard(t.status),
-                              priority: t.priority,
-                            }}
-                            category={cat}
-                            project={proj}
-                          />
-                        </div>
+                          category={cat}
+                          project={proj}
+                          columnRefs={columnRefs}
+                          onClick={() => openEditById(t.id)}
+                          onDrop={(d) => handleDrop(t.id, d)}
+                        />
                       );
                     })}
                     {isToday && <CurrentTimeIndicator />}
