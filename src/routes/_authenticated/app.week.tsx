@@ -346,7 +346,7 @@ function WeekPage() {
 
   const carryFn = useServerFn(carryUnfinished);
   const carryMut = useMutation({
-    mutationFn: () => carryFn({ data: undefined as never }),
+    mutationFn: () => carryFn(),
     onSuccess: (res: { moved: number }) => {
       qc.invalidateQueries({ queryKey: ["week"] });
       if (res.moved > 0) {
