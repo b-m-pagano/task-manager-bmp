@@ -266,6 +266,100 @@ function WeekPage() {
     }
   }, [daysISO, listFn, qc, rescheduleMut]);
 
+  /**
+   * Replaneja completamente um dia usando o motor de auto-agendamento.
+   * Hierarquia: eventos > pinned > urgent > high > medium > low.
+   * Mantém continuidade (sem espaços mortos), respeita duração.
+   */
+  const replanDay = useCallback(
+    (iso: string) => {
+      const all = (data?.tasks ?? []) as RawTask[];
+      const dayTasks = all.filter((t) => t.scheduled_day === iso && !t.parent_id);
+      if (dayTasks.length === 0) {
+        toast.info("Nada para replanejar nesse dia");
+        return;
+      }
+      const dayEvents: AutoBlock[] = ((data?.events ?? []) as any[])
+        .filter((e) => (e.starts_at ?? "").slice(0, 10) === iso)
+        .map((e) => {
+          const s = new Date(e.starts_at);
+          const en = new Date(e.ends_at);
+          return {
+            start: s.getHours() * 60 + s.getMinutes(),
+            end: en.getHours() * 60 + en.getMinutes(),
+          };
+        });
+
+      const autoTasks: AutoTask[] = dayTasks.map((t, idx) => ({
+        id: t.id,
+        duration: t.estimated_minutes,
+        priority: t.priority,
+        status: t.status,
+        order: t.scheduled_start ? tsToMinute(t.scheduled_start, idx) : idx,
+      }));
+
+      const { placements, changes } = autoScheduleDay(autoTasks, dayEvents, {
+        dayStart: DAY_START_HOUR * 60,
+        afterHoursMinute: 18 * 60,
+        buffer: 0,
+      });
+
+      if (changes.length === 0) {
+        toast.info("Dia já está otimizado");
+        return;
+      }
+      const updates = placements.map((p) => ({
+        id: p.id,
+        scheduled_day: iso,
+        start_minute: p.start,
+      }));
+
+      qc.setQueryData(["week", daysISO[0]], (prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tasks: prev.tasks.map((t: RawTask) => {
+            const upd = updates.find((u) => u.id === t.id);
+            if (!upd) return t;
+            const h = String(Math.floor(upd.start_minute / 60)).padStart(2, "0");
+            const m = String(upd.start_minute % 60).padStart(2, "0");
+            return {
+              ...t,
+              scheduled_day: upd.scheduled_day,
+              scheduled_start: `${upd.scheduled_day}T${h}:${m}:00`,
+            };
+          }),
+        };
+      });
+      rescheduleMut.mutate(updates);
+
+      const afterHoursCount = placements.filter((p) => p.afterHours).length;
+      toast.success(`${changes.length} tarefa(s) replanejada(s)`, {
+        description:
+          afterHoursCount > 0
+            ? `${afterHoursCount} ultrapassa(m) 18h`
+            : "Sequência otimizada",
+      });
+    },
+    [data, daysISO, qc, rescheduleMut],
+  );
+
+  const carryFn = useServerFn(carryUnfinished);
+  const carryMut = useMutation({
+    mutationFn: () => carryFn({ data: undefined as never }),
+    onSuccess: (res: { moved: number }) => {
+      qc.invalidateQueries({ queryKey: ["week"] });
+      if (res.moved > 0) {
+        toast.success(`${res.moved} tarefa(s) migrada(s) para hoje`, {
+          description: "Marcadas como prioridade máxima",
+        });
+      } else {
+        toast.info("Nenhuma tarefa pendente de dias anteriores");
+      }
+    },
+    onError: () => toast.error("Não foi possível migrar tarefas"),
+  });
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
