@@ -25,7 +25,12 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { analyzeDay, type AiInsights, type AiSuggestion } from "@/lib/ai/insights.functions";
+import {
+  analyzeDay,
+  type AiInsights,
+  type AiSuggestion,
+  type AiTaskRisk,
+} from "@/lib/ai/insights.functions";
 
 interface AiInsightsPanelProps {
   day: string;
@@ -138,6 +143,64 @@ export function AiInsightsPanel({
                     </p>
                   </div>
                 </section>
+
+                {insights.taskRisks && insights.taskRisks.length > 0 && (
+                  <section className="space-y-2">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Previsão por tarefa
+                    </h3>
+                    <ul className="space-y-1.5">
+                      {insights.taskRisks
+                        .slice()
+                        .sort((a, b) => b.postponementRisk - a.postponementRisk)
+                        .map((r: AiTaskRisk) => (
+                          <li
+                            key={r.taskId}
+                            className={cn(
+                              "rounded-md border p-2.5 text-xs",
+                              SEVERITY_STYLES[r.severity],
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="min-w-0 flex-1 truncate font-medium text-foreground">
+                                {r.title}
+                              </p>
+                              <Badge
+                                variant={
+                                  r.severity === "high"
+                                    ? "destructive"
+                                    : r.severity === "warn"
+                                      ? "secondary"
+                                      : "outline"
+                                }
+                                className="h-4 shrink-0 px-1.5 text-[9px] tabular-nums"
+                              >
+                                risco {r.postponementRisk}%
+                              </Badge>
+                            </div>
+                            <div className="mt-1 flex items-center gap-3 text-[11px] tabular-nums text-muted-foreground">
+                              <span className="inline-flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                fim previsto{" "}
+                                <span className="font-semibold text-foreground">
+                                  {fmt(r.predictedEndMinute)}
+                                </span>
+                              </span>
+                              {r.delayMinutes > 0 && (
+                                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  +{r.delayMinutes}min
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                              {r.reason}
+                            </p>
+                          </li>
+                        ))}
+                    </ul>
+                  </section>
+                )}
 
                 {insights.suggestions.length === 0 ? (
                   <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
