@@ -1,67 +1,65 @@
-## O problema
+# Parte 1 — Fundação base (modo "preservar")
 
-O sistema parece instável porque há um **loop de redirecionamento** entre `/login` e `/app/week`. Veja o que está acontecendo:
+Combinado: mantemos tudo que já funciona (DnD na Semana, IA, tabelas Supabase, auth) e apenas adicionamos/extraímos o que falta para bater com o prompt original. Ao fim do projeto, reavaliamos.
 
-1. `src/routes/_authenticated.tsx` faz, no `beforeLoad`:
-   ```ts
-   const { data } = await supabase.auth.getSession();
-   if (!data.session) throw redirect({ to: "/login" });
-   ```
-2. `beforeLoad` roda **tanto no servidor (SSR) quanto no cliente**.
-3. No servidor não existe `localStorage`, então `supabase.auth.getSession()` **sempre retorna `null`** — independente de você estar logado.
-4. Resultado: toda navegação SSR (clicar num link, dar refresh, prefetch ao passar o mouse sobre um link com `defaultPreloadStaleTime: 0`) joga você de volta para `/login`.
-5. No cliente, a sessão existe → a `/login` te manda para `/app/week` → próximo SSR te manda de volta para `/login` → flicker, sensação de "travado".
+## Diff resumido (o que falta vs. o que existe)
 
-Os logs confirmam: você está autenticado (várias chamadas `/_serverFn/...` retornam 200 com token Bearer válido), mas a UI continua oscilando para `/login`.
+| Item do prompt | Estado | Ação |
+|---|---|---|
+| Dark mode com toggle | Tokens existem, falta provider + toggle | **Adicionar** |
+| Sidebar (shadcn) | Sidebar caseira no `_authenticated.tsx` | **Substituir** por shadcn `Sidebar` |
+| Header | Não existe | **Criar** (com `SidebarTrigger` + theme toggle + user menu) |
+| Dashboard | Não existe | **Criar** página vazia em `/app` |
+| Tarefas | Não existe (só Inbox) | **Criar** `/app/tasks` vazia |
+| Projetos | Não existe | **Criar** `/app/projects` vazia |
+| Agenda Semanal | Existe (`app.week.tsx`) | **Preservar** |
+| Configurações | Existe | **Preservar** |
+| TaskCard | Lógica inline em `app.week.tsx` | **Extrair** para `src/components/task-card.tsx` |
+| CalendarGrid | Inline | **Extrair** para `src/components/calendar-grid.tsx` |
+| FloatingActionButton | Não existe | **Criar** `src/components/fab.tsx` |
+| Card / Modal / Dialog | shadcn já disponíveis | Nada a fazer |
 
-Os erros antigos de `@dnd-kit/core`, `ai`, `@ai-sdk/openai-compatible` já foram resolvidos — não fazem mais parte do problema atual.
+## Etapas
 
-## Correção
+### 1. Dark mode
+- Criar `src/components/theme-provider.tsx` (controla classe `dark` no `<html>`, persiste em `localStorage`, respeita `prefers-color-scheme`).
+- Criar `src/components/theme-toggle.tsx` (botão sol/lua usando shadcn `DropdownMenu`).
+- Envolver app no `__root.tsx` com `<ThemeProvider>`.
 
-Mover a checagem de sessão para o cliente, mantendo a UX de redirect-to-login.
+### 2. Sidebar shadcn + Header
+- Substituir a `<aside>` caseira do `_authenticated.tsx` por shadcn `Sidebar` (`collapsible="icon"`) em novo `src/components/app-sidebar.tsx`.
+- Itens: Dashboard, Semana, Hoje, Inbox, Tarefas, Projetos, Categorias, Configurações.
+- Criar `src/components/app-header.tsx` com `SidebarTrigger` + `ThemeToggle` + botão "Sair".
+- Layout em `_authenticated.tsx`: `<SidebarProvider><AppSidebar/><div><AppHeader/><Outlet/></div></SidebarProvider>`.
 
-### 1. `src/routes/_authenticated.tsx`
-- Remover `getSession()` do `beforeLoad`.
-- Trocar por uma checagem **client-side**: o componente `AppShell` usa um hook tipo `useAuthReady` que:
-  - chama `supabase.auth.getSession()` uma vez no `useEffect`,
-  - escuta `onAuthStateChange`,
-  - retorna `{ user, isReady }`.
-- Enquanto `!isReady`, renderiza um placeholder neutro (mesmo bg) — evita flash.
-- Quando `isReady && !user`, faz `router.navigate({ to: "/login" })`.
-- Quando `isReady && user`, renderiza o `<Outlet />`.
+### 3. Páginas vazias
+Criar com placeholder mínimo (título + texto "Em construção"):
+- `src/routes/_authenticated/app.index.tsx` — **transformar em Dashboard** (hoje é redirect, virar página real).
+- `src/routes/_authenticated/app.tasks.tsx` — Tarefas
+- `src/routes/_authenticated/app.projects.tsx` — Projetos
 
-Isso elimina o redirect SSR-falso-negativo sem flash de conteúdo protegido (a UI fica em loading até o cliente confirmar sessão).
+### 4. Componentes reutilizáveis
+- `src/components/task-card.tsx` — extrai a UI do card de tarefa do `app.week.tsx` (visual + props, sem mover lógica de DnD agora).
+- `src/components/calendar-grid.tsx` — extrai a grade semanal (estrutura visual; o `app.week.tsx` continua orquestrando estado/DnD).
+- `src/components/fab.tsx` — botão flutuante padrão (ícone `+`, posição fixed bottom-right, variantes via `cva`).
 
-### 2. `src/routes/login.tsx`
-- Usar o mesmo hook `useAuthReady` em vez de chamar `getSession()` direto.
-- Só redireciona para `/app/week` depois que `isReady === true`.
-- Evita o ping-pong quando o usuário chega na `/login` autenticado.
+> **Importante:** a extração é apenas estrutural — `app.week.tsx` continua funcionando igual, só passa a importar os componentes em vez de ter o JSX inline. Nada de DnD/IA é tocado.
 
-### 3. Novo arquivo `src/hooks/use-auth-ready.ts`
-Hook compartilhado conforme o padrão recomendado para Supabase + TanStack Start:
-```ts
-export function useAuthReady() {
-  const [state, setState] = useState({ user: null, isReady: false });
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setState({ user: data.session?.user ?? null, isReady: true });
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setState({ user: session?.user ?? null, isReady: true });
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-  return state;
-}
-```
+### 5. NÃO fazer nesta etapa (conforme prompt)
+- DnD, automações, reagendamento, IA, Google Calendar → preservados como estão, sem evolução.
 
-### 4. Verificação
-- Abrir `/app/week` logado → não deve mais piscar para `/login`.
-- Refresh em `/app/week` → continua na página (após pequeno flash de loading).
-- Logout via botão "Sair" → vai para `/login` e fica lá.
-- Acessar `/login` já logado → redireciona para `/app/week`.
+## Detalhes técnicos
 
-## Fora de escopo
+- **Stack:** mantemos TanStack Start (não vamos para Next.js — seria reescrever tudo).
+- **Tokens de cor:** já em `oklch` no `src/styles.css`; vou só validar que a versão `.dark` existe e está consistente.
+- **Sem migrações de DB** nesta parte.
+- **Sem novas dependências** (shadcn sidebar e dropdown-menu já estão no projeto).
 
-- Warning de hidratação `data-scribe-recorder-ready` (vem de uma extensão do navegador, não é bug do app).
-- Quaisquer mudanças visuais — só lógica de auth.
+## Validação ao final
+- Login → Dashboard carrega.
+- Sidebar colapsa/expande, todas as rotas navegam.
+- Toggle de tema alterna claro/escuro e persiste.
+- `/app/week` continua funcionando exatamente como antes (DnD, IA, etc.).
+- Build limpo.
+
+Se aprovar, eu implemento na sequência acima.
