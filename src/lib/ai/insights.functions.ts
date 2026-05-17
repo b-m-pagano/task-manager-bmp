@@ -32,15 +32,30 @@ const SuggestionSchema = z.object({
   severity: z.enum(["info", "warn", "high"]).default("info"),
 });
 
+const TaskRiskSchema = z.object({
+  taskId: z.string(),
+  title: z.string(),
+  /** Minuto previsto de término considerando fila + eventos bloqueantes. */
+  predictedEndMinute: z.number().int().min(0),
+  /** Quantos minutos a tarefa deve atrasar em relação ao previsto/limite. */
+  delayMinutes: z.number().int(),
+  /** Risco de adiamento para o dia seguinte (0–100). */
+  postponementRisk: z.number().min(0).max(100),
+  severity: z.enum(["info", "warn", "high"]),
+  reason: z.string().min(1).max(200),
+});
+
 const InsightsSchema = z.object({
   summary: z.string().min(1).max(400),
   overloadScore: z.number().min(0).max(100),
   totalMinutes: z.number().int().min(0),
   freeMinutes: z.number().int().min(0),
   suggestions: z.array(SuggestionSchema).max(8),
+  taskRisks: z.array(TaskRiskSchema).max(50).default([]),
 });
 
 export type AiSuggestion = z.infer<typeof SuggestionSchema>;
+export type AiTaskRisk = z.infer<typeof TaskRiskSchema>;
 export type AiInsights = z.infer<typeof InsightsSchema>;
 
 const DAY_START = 8 * 60; // 08:00
