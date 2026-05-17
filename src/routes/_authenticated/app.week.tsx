@@ -135,7 +135,87 @@ function WeekPage() {
     [data],
   );
 
-  // Global shortcuts: N=new, /=focus quick add
+  // Intelligent drop handler — uses reflow engine and persists via bulk reschedule.
+  const handleDrop = useCallback(
+    (taskId: string, drop: { day: string; startMinute: number }) => {
+      const all = (data?.tasks ?? []) as RawTask[];
+      const moved = all.find((t) => t.id === taskId);
+      if (!moved) return;
+
+      // If moving across days, just place the moved task — same-day reflow only
+      // affects tasks in the target day.
+      const oldDay = moved.scheduled_day;
+      const targetDay = drop.day;
+
+      // Build target-day task set (after virtually moving `moved` into it).
+      const targetTasksRaw = all.filter(
+        (t) => (t.scheduled_day === targetDay || t.id === taskId) && !t.parent_id,
+      );
+      const targetEvents: ReflowBlock[] = (data?.events ?? [])
+        .filter((e: any) => (e.starts_at ?? "").slice(0, 10) === targetDay)
+        .map((e: any) => {
+          const s = new Date(e.starts_at);
+          const en = new Date(e.ends_at);
+          return {
+            start: s.getHours() * 60 + s.getMinutes(),
+            end: en.getHours() * 60 + en.getMinutes(),
+          };
+        });
+
+      let stack = DAY_START_HOUR * 60;
+      const targetTasks: ReflowTask[] = targetTasksRaw.map((t) => {
+        const start =
+          t.id === taskId
+            ? drop.startMinute
+            : t.scheduled_start
+              ? tsToMinute(t.scheduled_start, stack)
+              : stack;
+        if (t.id !== taskId && !t.scheduled_start) stack = start + t.estimated_minutes;
+        return { id: t.id, start, duration: t.estimated_minutes };
+      });
+
+      const { changes } = reflowDay(targetTasks, targetEvents, taskId, drop.startMinute, {
+        dayStart: DAY_START_HOUR * 60,
+        buffer: 0,
+      });
+
+      // Always include the moved task even if its minute didn't change (day may have).
+      changes[taskId] = changes[taskId] ?? drop.startMinute;
+
+      const updates = Object.entries(changes).map(([id, startMinute]) => ({
+        id,
+        scheduled_day: targetDay,
+        start_minute: startMinute,
+      }));
+
+      // Optimistic patch of cached week data.
+      qc.setQueryData(["week", daysISO[0]], (prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tasks: prev.tasks.map((t: RawTask) => {
+            const upd = updates.find((u) => u.id === t.id);
+            if (!upd) return t;
+            const h = String(Math.floor(upd.start_minute / 60)).padStart(2, "0");
+            const m = String(upd.start_minute % 60).padStart(2, "0");
+            return {
+              ...t,
+              scheduled_day: upd.scheduled_day,
+              scheduled_start: `${upd.scheduled_day}T${h}:${m}:00`,
+            };
+          }),
+        };
+      });
+
+      rescheduleMut.mutate(updates);
+      if (oldDay !== targetDay) {
+        toast.success("Tarefa movida", { description: `→ ${targetDay}` });
+      }
+    },
+    [data, daysISO, qc, rescheduleMut],
+  );
+
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
