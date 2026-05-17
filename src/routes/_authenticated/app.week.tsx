@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles, ArrowDownToLine } from "lucide-react";
 import { toast } from "sonner";
 
 import { WeekHeader } from "@/components/week-calendar/week-header";
@@ -22,8 +22,9 @@ import { CalendarSyncButton } from "@/components/week-calendar/calendar-sync-but
 import { QuickAddBar } from "@/components/tasks/quick-add-bar";
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
 import { Button } from "@/components/ui/button";
-import { listWeekData, rescheduleTasks } from "@/lib/tasks.functions";
+import { carryUnfinished, listWeekData, rescheduleTasks } from "@/lib/tasks.functions";
 import { reflowConflicts, reflowDay, type ReflowBlock, type ReflowTask } from "@/lib/queue/reflow";
+import { autoScheduleDay, type AutoTask, type AutoBlock } from "@/lib/queue/auto-schedule";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/week")({
