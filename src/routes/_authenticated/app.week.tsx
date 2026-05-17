@@ -342,7 +342,14 @@ function WeekPage() {
 
                 let stack = DAY_START_HOUR * 60; // for tasks without a time
                 return (
-                  <DayColumnGrid key={iso} isToday={isToday} isWeekend={isWeekend}>
+                  <DayColumnGrid
+                    key={iso}
+                    isToday={isToday}
+                    isWeekend={isWeekend}
+                    ref={(el) => {
+                      columnRefs.current[iso] = el;
+                    }}
+                  >
                     {/* Click empty area → quick create on that day */}
                     <button
                       type="button"
@@ -381,35 +388,25 @@ function WeekPage() {
                       const cat = t.category_id ? categoryById[t.category_id] : undefined;
                       const proj = t.project_id ? projectById[t.project_id] : undefined;
                       return (
-                        <div
+                        <DraggableTask
                           key={t.id}
-                          className="relative z-[1]"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditById(t.id);
+                          event={{
+                            id: t.id,
+                            title: t.title,
+                            day: iso,
+                            startMinute: startMin,
+                            durationMinutes: t.estimated_minutes,
+                            categoryId: t.category_id ?? "",
+                            projectId: t.project_id ?? undefined,
+                            status: mapStatusForCard(t.status),
+                            priority: t.priority,
                           }}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") openEditById(t.id);
-                          }}
-                        >
-                          <EventCard
-                            event={{
-                              id: t.id,
-                              title: t.title,
-                              day: iso,
-                              startMinute: startMin,
-                              durationMinutes: t.estimated_minutes,
-                              categoryId: t.category_id ?? "",
-                              projectId: t.project_id ?? undefined,
-                              status: mapStatusForCard(t.status),
-                              priority: t.priority,
-                            }}
-                            category={cat}
-                            project={proj}
-                          />
-                        </div>
+                          category={cat}
+                          project={proj}
+                          columnRefs={columnRefs}
+                          onClick={() => openEditById(t.id)}
+                          onDrop={(d) => handleDrop(t.id, d)}
+                        />
                       );
                     })}
                     {isToday && <CurrentTimeIndicator />}
