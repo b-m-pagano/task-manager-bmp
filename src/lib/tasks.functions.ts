@@ -322,7 +322,13 @@ export const carryUnfinished = createServerFn({ method: "POST" })
     for (let i = 0; i < stale.length; i++) {
       await supabase
         .from("tasks")
-        .update({ scheduled_day: today, queue_position: i })
+        .update({
+          scheduled_day: today,
+          queue_position: i,
+          // Migradas tornam-se prioridade máxima.
+          priority: "urgent",
+          scheduled_start: null,
+        })
         .eq("id", stale[i].id)
         .eq("user_id", userId);
     }

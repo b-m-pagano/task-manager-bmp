@@ -58,11 +58,15 @@ export function EventCard({ event, category, project }: EventCardProps) {
     );
   }
 
+  const AFTER_HOURS = 18 * 60;
+  const isAfterHours = !isDone && event.startMinute >= AFTER_HOURS;
+
   return (
     <div
       className={cn(
         "group absolute inset-x-1 flex flex-col overflow-hidden rounded-md border border-border bg-card text-[11px] shadow-sm transition-[box-shadow,transform,top,height] duration-200 ease-out hover:z-10 hover:shadow-md",
         isDone && "opacity-55",
+        isAfterHours && "ring-1 ring-after-hours/60",
         priorityRing[event.priority],
       )}
       style={{
@@ -85,6 +89,14 @@ export function EventCard({ event, category, project }: EventCardProps) {
           >
             {event.title}
           </p>
+          {isAfterHours && (
+            <span
+              className="shrink-0"
+              title="Tarefa fora do horário comercial (após 18h)"
+            >
+              <AlertTriangle className="h-2.5 w-2.5 text-after-hours" />
+            </span>
+          )}
           {priorityIcon[event.priority] && <span className="shrink-0">{priorityIcon[event.priority]}</span>}
         </div>
         {!compact && (
