@@ -52,6 +52,38 @@ export const listWeekData = createServerFn({ method: "POST" })
     };
   });
 
+export const listMonthData = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        from: z.string().regex(ISO_DATE),
+        to: z.string().regex(ISO_DATE),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const [tasksRes, eventsRes, catsRes] = await Promise.all([
+      supabase
+        .from("tasks")
+        .select("id,scheduled_day,category_id,status")
+        .gte("scheduled_day", data.from)
+        .lte("scheduled_day", data.to),
+      supabase
+        .from("calendar_events")
+        .select("id,starts_at,ends_at")
+        .gte("starts_at", `${data.from}T00:00:00`)
+        .lte("ends_at", `${data.to}T23:59:59`),
+      supabase.from("categories").select("id,name,color").order("sort_order"),
+    ]);
+    return {
+      tasks: tasksRes.data ?? [],
+      events: eventsRes.data ?? [],
+      categories: catsRes.data ?? [],
+    };
+  });
+
 function startTsFromMinute(day: string, minute: number | null | undefined): string | null {
   if (minute == null) return null;
   const h = String(Math.floor(minute / 60)).padStart(2, "0");
