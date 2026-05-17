@@ -18,11 +18,12 @@ import {
 import { EventCard } from "@/components/week-calendar/event-card";
 import { CurrentTimeIndicator } from "@/components/week-calendar/current-time-indicator";
 import { DraggableTask } from "@/components/week-calendar/draggable-task";
+import { CalendarSyncButton } from "@/components/week-calendar/calendar-sync-button";
 import { QuickAddBar } from "@/components/tasks/quick-add-bar";
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
 import { Button } from "@/components/ui/button";
 import { listWeekData, rescheduleTasks } from "@/lib/tasks.functions";
-import { reflowDay, type ReflowBlock, type ReflowTask } from "@/lib/queue/reflow";
+import { reflowConflicts, reflowDay, type ReflowBlock, type ReflowTask } from "@/lib/queue/reflow";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/week")({
@@ -215,6 +216,54 @@ function WeekPage() {
     [data, daysISO, qc, rescheduleMut],
   );
 
+  /**
+   * Após sincronizar Google Calendar: detecta tarefas que passaram a colidir
+   * com eventos externos e empurra-as para o próximo espaço livre, mantendo
+   * ordem relativa. Eventos externos têm prioridade absoluta.
+   */
+  const handleSynced = useCallback(async () => {
+    const fresh = await qc.fetchQuery({
+      queryKey: ["week", daysISO[0]],
+      queryFn: () => listFn({ data: { days: daysISO } }),
+    });
+    const allUpdates: { id: string; scheduled_day: string; start_minute: number }[] = [];
+    for (const iso of daysISO) {
+      const dayTasks = (fresh.tasks as RawTask[]).filter(
+        (t) => t.scheduled_day === iso && !t.parent_id,
+      );
+      if (dayTasks.length === 0) continue;
+      const dayEvents: ReflowBlock[] = (fresh.events ?? [])
+        .filter((e: any) => (e.starts_at ?? "").slice(0, 10) === iso)
+        .map((e: any) => {
+          const s = new Date(e.starts_at);
+          const en = new Date(e.ends_at);
+          return {
+            start: s.getHours() * 60 + s.getMinutes(),
+            end: en.getHours() * 60 + en.getMinutes(),
+          };
+        });
+      if (dayEvents.length === 0) continue;
+      let stack = DAY_START_HOUR * 60;
+      const rTasks: ReflowTask[] = dayTasks.map((t) => {
+        const start = t.scheduled_start ? tsToMinute(t.scheduled_start, stack) : stack;
+        if (!t.scheduled_start) stack = start + t.estimated_minutes;
+        return { id: t.id, start, duration: t.estimated_minutes };
+      });
+      const { changes } = reflowConflicts(rTasks, dayEvents, {
+        dayStart: DAY_START_HOUR * 60,
+        buffer: 0,
+      });
+      for (const [id, startMinute] of Object.entries(changes)) {
+        allUpdates.push({ id, scheduled_day: iso, start_minute: startMinute });
+      }
+    }
+    if (allUpdates.length > 0) {
+      rescheduleMut.mutate(allUpdates);
+      toast.message("Tarefas reagendadas", {
+        description: `${allUpdates.length} tarefa(s) movida(s) por conflito com Calendar`,
+      });
+    }
+  }, [daysISO, listFn, qc, rescheduleMut]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -268,6 +317,11 @@ function WeekPage() {
         <div className="flex-1">
           <QuickAddBar todayISO={isoDay(new Date())} />
         </div>
+        <CalendarSyncButton
+          from={daysISO[0]}
+          to={daysISO[daysISO.length - 1]}
+          onSynced={handleSynced}
+        />
       </div>
 
       <div className="flex min-h-0 flex-1">
