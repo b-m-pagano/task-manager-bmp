@@ -2,17 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Calendar, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { syncCalendarRange } from "@/lib/calendar.functions";
 
 interface Props {
   from: string;
   to: string;
-  /** Chamado após sync bem-sucedida — usado para invalidar cache + reflow */
   onSynced?: () => void;
-  /** Auto-sync uma vez por (from,to) ao montar */
   autoSync?: boolean;
 }
 
@@ -26,17 +24,21 @@ export function CalendarSyncButton({ from, to, onSynced, autoSync = true }: Prop
     async (silent = false) => {
       setBusy(true);
       try {
-        const { data: sess } = await supabase.auth.getSession();
-        const token = sess.session?.provider_token;
-        if (!token) {
-          if (!silent)
-            toast.error("Sessão Google expirada", {
-              description: "Saia e entre novamente para reconectar o Calendar.",
-            });
-          return;
-        }
-        const res = await syncFn({ data: { provider_token: token, from, to } });
+        const res = await syncFn({ data: { from, to } });
         if (!res.ok) {
+          if (res.error === "not_connected") {
+            if (!silent)
+              toast.message("Google Calendar não conectado", {
+                description: "Conecte em Configurações para sincronizar.",
+                action: {
+                  label: "Configurações",
+                  onClick: () => {
+                    window.location.href = "/app/settings";
+                  },
+                },
+              });
+            return;
+          }
           if (!silent) toast.error("Falha na sincronização", { description: res.error });
           return;
         }
@@ -69,6 +71,7 @@ export function CalendarSyncButton({ from, to, onSynced, autoSync = true }: Prop
       disabled={busy}
       className="shrink-0 gap-1.5"
       title="Sincronizar Google Calendar"
+      asChild={false}
     >
       {busy ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -77,6 +80,15 @@ export function CalendarSyncButton({ from, to, onSynced, autoSync = true }: Prop
       )}
       <Calendar className="h-3.5 w-3.5" />
       <span className="hidden text-xs sm:inline">Calendar</span>
+    </Button>
+  );
+}
+
+// Helper component (não usado por padrão) para CTA quando não conectado.
+export function ConnectCalendarLink() {
+  return (
+    <Button asChild size="sm" variant="outline">
+      <Link to="/app/settings">Conectar Google Calendar</Link>
     </Button>
   );
 }

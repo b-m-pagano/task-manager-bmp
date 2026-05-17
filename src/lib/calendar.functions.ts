@@ -1,20 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { refreshAccessToken } from "@/lib/google/oauth.server";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * Sync Google Calendar events for a date range.
- * Token vem do provider_token salvo na sessão Supabase (Google OAuth).
- * O cliente passa o token; alternativa seria recuperar via auth.admin.
+ * Sync Google Calendar events para uma janela [from, to].
+ * Tokens são lidos da tabela google_connections; o refresh_token é usado para
+ * gerar novo access_token sob demanda quando o atual expirou.
  */
 export const syncCalendarRange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z
       .object({
-        provider_token: z.string().min(20),
         from: z.string().regex(ISO_DATE),
         to: z.string().regex(ISO_DATE),
       })
@@ -22,12 +22,44 @@ export const syncCalendarRange = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
+    const { data: conn } = await supabase
+      .from("google_connections")
+      .select("access_token, refresh_token, expires_at")
+      .maybeSingle();
+
+    if (!conn?.refresh_token) {
+      return { ok: false, error: "not_connected" as const };
+    }
+
+    // Garante access_token válido (com 60s de margem).
+    let accessToken = conn.access_token ?? "";
+    const expSoon =
+      !conn.expires_at || new Date(conn.expires_at).getTime() - 60_000 < Date.now();
+    if (!accessToken || expSoon) {
+      try {
+        const refreshed = await refreshAccessToken(conn.refresh_token);
+        accessToken = refreshed.access_token;
+        const expiresAt = refreshed.expires_in
+          ? new Date(Date.now() + refreshed.expires_in * 1000).toISOString()
+          : null;
+        await supabase
+          .from("google_connections")
+          .update({
+            access_token: accessToken,
+            expires_at: expiresAt,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("user_id", userId);
+      } catch (e) {
+        return { ok: false, error: `refresh_failed: ${String(e)}` };
+      }
+    }
+
     const timeMin = new Date(`${data.from}T00:00:00`).toISOString();
     const timeMax = new Date(`${data.to}T23:59:59`).toISOString();
 
-    const url = new URL(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events",
-    );
+    const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
     url.searchParams.set("timeMin", timeMin);
     url.searchParams.set("timeMax", timeMax);
     url.searchParams.set("singleEvents", "true");
@@ -35,7 +67,7 @@ export const syncCalendarRange = createServerFn({ method: "POST" })
     url.searchParams.set("maxResults", "250");
 
     const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${data.provider_token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!res.ok) {
       const text = await res.text();
@@ -50,10 +82,8 @@ export const syncCalendarRange = createServerFn({ method: "POST" })
         end?: { dateTime?: string; date?: string };
       }>;
     };
-
     const items = json.items ?? [];
 
-    // Replace events in window for this user
     await supabase
       .from("calendar_events")
       .delete()
@@ -76,14 +106,15 @@ export const syncCalendarRange = createServerFn({ method: "POST" })
           all_day: allDay,
         };
       });
-      await supabase.from("calendar_events").upsert(rows, {
-        onConflict: "user_id,google_event_id",
-      });
+      await supabase
+        .from("calendar_events")
+        .upsert(rows, { onConflict: "user_id,google_event_id" });
     }
 
     await supabase
       .from("google_connections")
-      .upsert({ user_id: userId, last_sync_at: new Date().toISOString() });
+      .update({ last_sync_at: new Date().toISOString() })
+      .eq("user_id", userId);
 
     return { ok: true, count: items.length };
   });
