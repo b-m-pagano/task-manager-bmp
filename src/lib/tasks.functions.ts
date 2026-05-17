@@ -18,7 +18,7 @@ export const listWeekData = createServerFn({ method: "POST" })
     const first = data.days[0];
     const last = data.days[data.days.length - 1];
 
-    const [tasksRes, eventsRes, catsRes, settingsRes] = await Promise.all([
+    const [tasksRes, eventsRes, catsRes, projectsRes, settingsRes] = await Promise.all([
       supabase
         .from("tasks")
         .select("*")
@@ -31,6 +31,7 @@ export const listWeekData = createServerFn({ method: "POST" })
         .gte("starts_at", `${first}T00:00:00`)
         .lte("ends_at", `${last}T23:59:59`),
       supabase.from("categories").select("*").order("sort_order"),
+      supabase.from("projects").select("*").order("sort_order"),
       supabase.from("user_settings").select("*").maybeSingle(),
     ]);
 
@@ -38,6 +39,7 @@ export const listWeekData = createServerFn({ method: "POST" })
       tasks: tasksRes.data ?? [],
       events: eventsRes.data ?? [],
       categories: catsRes.data ?? [],
+      projects: projectsRes.data ?? [],
       settings:
         settingsRes.data ?? {
           user_id: context.userId,
@@ -50,25 +52,32 @@ export const listWeekData = createServerFn({ method: "POST" })
     };
   });
 
+function startTsFromMinute(day: string, minute: number | null | undefined): string | null {
+  if (minute == null) return null;
+  const h = String(Math.floor(minute / 60)).padStart(2, "0");
+  const m = String(minute % 60).padStart(2, "0");
+  return `${day}T${h}:${m}:00`;
+}
+
+const CreateTaskSchema = z.object({
+  title: z.string().trim().min(1).max(280),
+  description: z.string().max(4000).nullable().optional(),
+  notes: z.string().max(10_000).nullable().optional(),
+  estimated_minutes: z.number().int().min(5).max(720).default(30),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+  scheduled_day: z.string().regex(ISO_DATE),
+  start_minute: z.number().int().min(0).max(1439).nullable().optional(),
+  category_id: z.string().uuid().nullable().optional(),
+  project_id: z.string().uuid().nullable().optional(),
+  parent_id: z.string().uuid().nullable().optional(),
+  due_date: z.string().regex(ISO_DATE).nullable().optional(),
+});
+
 export const createTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z
-      .object({
-        title: z.string().min(1).max(280),
-        description: z.string().max(4000).optional(),
-        estimated_minutes: z.number().int().min(5).max(720).default(30),
-        priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
-        scheduled_day: z.string().regex(ISO_DATE),
-        category_id: z.string().uuid().nullable().optional(),
-        parent_id: z.string().uuid().nullable().optional(),
-        due_date: z.string().regex(ISO_DATE).nullable().optional(),
-      })
-      .parse(input),
-  )
+  .inputValidator((input) => CreateTaskSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    // queue_position = max + 1 within day
     const { data: maxRow } = await supabase
       .from("tasks")
       .select("queue_position")
@@ -84,11 +93,14 @@ export const createTask = createServerFn({ method: "POST" })
         user_id: userId,
         title: data.title,
         description: data.description ?? null,
+        notes: data.notes ?? null,
         estimated_minutes: data.estimated_minutes,
         priority: data.priority,
         scheduled_day: data.scheduled_day,
+        scheduled_start: startTsFromMinute(data.scheduled_day, data.start_minute),
         queue_position: nextPos,
         category_id: data.category_id ?? null,
+        project_id: data.project_id ?? null,
         parent_id: data.parent_id ?? null,
         due_date: data.due_date ?? null,
       })
@@ -98,29 +110,54 @@ export const createTask = createServerFn({ method: "POST" })
     return row;
   });
 
+const UpdateTaskSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().trim().min(1).max(280).optional(),
+  description: z.string().max(4000).nullable().optional(),
+  notes: z.string().max(10_000).nullable().optional(),
+  estimated_minutes: z.number().int().min(5).max(720).optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+  status: z.enum(["pending", "in_progress", "done", "skipped"]).optional(),
+  category_id: z.string().uuid().nullable().optional(),
+  project_id: z.string().uuid().nullable().optional(),
+  parent_id: z.string().uuid().nullable().optional(),
+  scheduled_day: z.string().regex(ISO_DATE).optional(),
+  start_minute: z.number().int().min(0).max(1439).nullable().optional(),
+  due_date: z.string().regex(ISO_DATE).nullable().optional(),
+  queue_position: z.number().int().min(0).optional(),
+  pinned_at: z.string().datetime().nullable().optional(),
+  quick_note: z.string().max(500).nullable().optional(),
+});
+
 export const updateTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z
-      .object({
-        id: z.string().uuid(),
-        title: z.string().min(1).max(280).optional(),
-        description: z.string().max(4000).nullable().optional(),
-        estimated_minutes: z.number().int().min(5).max(720).optional(),
-        priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-        status: z.enum(["pending", "in_progress", "done", "skipped"]).optional(),
-        category_id: z.string().uuid().nullable().optional(),
-        scheduled_day: z.string().regex(ISO_DATE).optional(),
-        queue_position: z.number().int().min(0).optional(),
-        pinned_at: z.string().datetime().nullable().optional(),
-        quick_note: z.string().max(500).nullable().optional(),
-      })
-      .parse(input),
-  )
+  .inputValidator((input) => UpdateTaskSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { id, ...patch } = data;
-    const { supabase } = context;
-    const { data: row, error } = await supabase
+    const { id, start_minute, scheduled_day, ...rest } = data;
+    const patch: Record<string, unknown> = { ...rest };
+    if (scheduled_day !== undefined) patch.scheduled_day = scheduled_day;
+    if (start_minute !== undefined) {
+      const day = scheduled_day ?? null;
+      if (day) {
+        patch.scheduled_start = startTsFromMinute(day, start_minute);
+      } else {
+        // Need current day to compose; fetch row.
+        const { data: existing } = await context.supabase
+          .from("tasks")
+          .select("scheduled_day")
+          .eq("id", id)
+          .single();
+        if (existing) {
+          patch.scheduled_start = startTsFromMinute(existing.scheduled_day, start_minute);
+        }
+      }
+    }
+    if (patch.status === "done") {
+      patch.completed_at = new Date().toISOString();
+    } else if (rest.status && rest.status !== "done") {
+      patch.completed_at = null;
+    }
+    const { data: row, error } = await context.supabase
       .from("tasks")
       .update(patch)
       .eq("id", id)
@@ -128,6 +165,58 @@ export const updateTask = createServerFn({ method: "POST" })
       .single();
     if (error) throw error;
     return row;
+  });
+
+export const duplicateTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: src, error: e1 } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("id", data.id)
+      .single();
+    if (e1 || !src) throw e1 ?? new Error("Tarefa não encontrada");
+
+    const { data: maxRow } = await supabase
+      .from("tasks")
+      .select("queue_position")
+      .eq("scheduled_day", src.scheduled_day)
+      .order("queue_position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextPos = (maxRow?.queue_position ?? -1) + 1;
+
+    const { id: _drop, created_at: _c, updated_at: _u, completed_at: _cc, ...rest } = src as any;
+    const { data: row, error } = await supabase
+      .from("tasks")
+      .insert({
+        ...rest,
+        user_id: userId,
+        title: `${src.title} (cópia)`,
+        status: "pending",
+        completed_at: null,
+        queue_position: nextPos,
+        pinned_at: null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return row;
+  });
+
+export const listSubtasks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ parent_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("tasks")
+      .select("*")
+      .eq("parent_id", data.parent_id)
+      .order("queue_position", { ascending: true });
+    if (error) throw error;
+    return rows ?? [];
   });
 
 export const deleteTask = createServerFn({ method: "POST" })
