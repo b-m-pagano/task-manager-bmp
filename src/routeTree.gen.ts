@@ -15,7 +15,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppWeekRouteImport } from './routes/_authenticated/app.week'
 import { Route as AuthenticatedAppTodayRouteImport } from './routes/_authenticated/app.today'
+import { Route as AuthenticatedAppTasksRouteImport } from './routes/_authenticated/app.tasks'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
+import { Route as AuthenticatedAppProjectsRouteImport } from './routes/_authenticated/app.projects'
 import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
 import { Route as AuthenticatedAppCategoriesRouteImport } from './routes/_authenticated/app.categories'
 
@@ -48,10 +50,21 @@ const AuthenticatedAppTodayRoute = AuthenticatedAppTodayRouteImport.update({
   path: '/app/today',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAppTasksRoute = AuthenticatedAppTasksRouteImport.update({
+  id: '/app/tasks',
+  path: '/app/tasks',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAppSettingsRoute =
   AuthenticatedAppSettingsRouteImport.update({
     id: '/app/settings',
     path: '/app/settings',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppProjectsRoute =
+  AuthenticatedAppProjectsRouteImport.update({
+    id: '/app/projects',
+    path: '/app/projects',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedAppInboxRoute = AuthenticatedAppInboxRouteImport.update({
@@ -71,7 +84,9 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/app/categories': typeof AuthenticatedAppCategoriesRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/app/projects': typeof AuthenticatedAppProjectsRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/app/tasks': typeof AuthenticatedAppTasksRoute
   '/app/today': typeof AuthenticatedAppTodayRoute
   '/app/week': typeof AuthenticatedAppWeekRoute
   '/app/': typeof AuthenticatedAppIndexRoute
@@ -81,7 +96,9 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/app/categories': typeof AuthenticatedAppCategoriesRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/app/projects': typeof AuthenticatedAppProjectsRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/app/tasks': typeof AuthenticatedAppTasksRoute
   '/app/today': typeof AuthenticatedAppTodayRoute
   '/app/week': typeof AuthenticatedAppWeekRoute
   '/app': typeof AuthenticatedAppIndexRoute
@@ -93,7 +110,9 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/app/categories': typeof AuthenticatedAppCategoriesRoute
   '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/_authenticated/app/projects': typeof AuthenticatedAppProjectsRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
+  '/_authenticated/app/tasks': typeof AuthenticatedAppTasksRoute
   '/_authenticated/app/today': typeof AuthenticatedAppTodayRoute
   '/_authenticated/app/week': typeof AuthenticatedAppWeekRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
@@ -105,7 +124,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/app/categories'
     | '/app/inbox'
+    | '/app/projects'
     | '/app/settings'
+    | '/app/tasks'
     | '/app/today'
     | '/app/week'
     | '/app/'
@@ -115,7 +136,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/app/categories'
     | '/app/inbox'
+    | '/app/projects'
     | '/app/settings'
+    | '/app/tasks'
     | '/app/today'
     | '/app/week'
     | '/app'
@@ -126,7 +149,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/app/categories'
     | '/_authenticated/app/inbox'
+    | '/_authenticated/app/projects'
     | '/_authenticated/app/settings'
+    | '/_authenticated/app/tasks'
     | '/_authenticated/app/today'
     | '/_authenticated/app/week'
     | '/_authenticated/app/'
@@ -182,11 +207,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppTodayRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/tasks': {
+      id: '/_authenticated/app/tasks'
+      path: '/app/tasks'
+      fullPath: '/app/tasks'
+      preLoaderRoute: typeof AuthenticatedAppTasksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/app/settings': {
       id: '/_authenticated/app/settings'
       path: '/app/settings'
       fullPath: '/app/settings'
       preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/projects': {
+      id: '/_authenticated/app/projects'
+      path: '/app/projects'
+      fullPath: '/app/projects'
+      preLoaderRoute: typeof AuthenticatedAppProjectsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/app/inbox': {
@@ -209,7 +248,9 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedAppCategoriesRoute: typeof AuthenticatedAppCategoriesRoute
   AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
+  AuthenticatedAppProjectsRoute: typeof AuthenticatedAppProjectsRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
+  AuthenticatedAppTasksRoute: typeof AuthenticatedAppTasksRoute
   AuthenticatedAppTodayRoute: typeof AuthenticatedAppTodayRoute
   AuthenticatedAppWeekRoute: typeof AuthenticatedAppWeekRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
@@ -218,7 +259,9 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppCategoriesRoute: AuthenticatedAppCategoriesRoute,
   AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
+  AuthenticatedAppProjectsRoute: AuthenticatedAppProjectsRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
+  AuthenticatedAppTasksRoute: AuthenticatedAppTasksRoute,
   AuthenticatedAppTodayRoute: AuthenticatedAppTodayRoute,
   AuthenticatedAppWeekRoute: AuthenticatedAppWeekRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
