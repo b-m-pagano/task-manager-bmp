@@ -159,7 +159,7 @@ export const updateTask = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await context.supabase
       .from("tasks")
-      .update(patch)
+      .update(patch as never)
       .eq("id", id)
       .select()
       .single();
