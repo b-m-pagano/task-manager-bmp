@@ -22,6 +22,8 @@ export type Database = {
           ends_at: string
           google_event_id: string
           id: string
+          is_blocking: boolean
+          source: string
           starts_at: string
           synced_at: string
           title: string
@@ -34,6 +36,8 @@ export type Database = {
           ends_at: string
           google_event_id: string
           id?: string
+          is_blocking?: boolean
+          source?: string
           starts_at: string
           synced_at?: string
           title: string
@@ -46,6 +50,8 @@ export type Database = {
           ends_at?: string
           google_event_id?: string
           id?: string
+          is_blocking?: boolean
+          source?: string
           starts_at?: string
           synced_at?: string
           title?: string
@@ -113,21 +119,71 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          archived_at: string | null
+          color: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          icon: string | null
+          id: string
+          name: string
+          sort_order: number
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          color?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          color?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
+          actual_duration_minutes: number | null
           actual_end: string | null
           actual_start: string | null
           category_id: string | null
+          completed_at: string | null
           created_at: string
           description: string | null
           due_date: string | null
           estimated_minutes: number
           id: string
+          notes: string | null
           parent_id: string | null
           pinned_at: string | null
           priority: Database["public"]["Enums"]["task_priority"]
+          project_id: string | null
           queue_position: number
           quick_note: string | null
+          recurrence_rule: string | null
           scheduled_day: string
           scheduled_end: string | null
           scheduled_start: string | null
@@ -138,19 +194,24 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          actual_duration_minutes?: number | null
           actual_end?: string | null
           actual_start?: string | null
           category_id?: string | null
+          completed_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           estimated_minutes?: number
           id?: string
+          notes?: string | null
           parent_id?: string | null
           pinned_at?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string | null
           queue_position?: number
           quick_note?: string | null
+          recurrence_rule?: string | null
           scheduled_day?: string
           scheduled_end?: string | null
           scheduled_start?: string | null
@@ -161,19 +222,24 @@ export type Database = {
           user_id: string
         }
         Update: {
+          actual_duration_minutes?: number | null
           actual_end?: string | null
           actual_start?: string | null
           category_id?: string | null
+          completed_at?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           estimated_minutes?: number
           id?: string
+          notes?: string | null
           parent_id?: string | null
           pinned_at?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string | null
           queue_position?: number
           quick_note?: string | null
+          recurrence_rule?: string | null
           scheduled_day?: string
           scheduled_end?: string | null
           scheduled_start?: string | null
@@ -196,6 +262,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -238,6 +311,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      project_status: "active" | "archived" | "done"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "pending" | "in_progress" | "done" | "skipped"
     }
@@ -367,6 +441,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      project_status: ["active", "archived", "done"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["pending", "in_progress", "done", "skipped"],
     },
