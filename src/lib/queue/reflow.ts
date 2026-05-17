@@ -124,3 +124,40 @@ export function reflowDay(
 
   return { changes };
 }
+
+/**
+ * Reflow puro contra um conjunto de blockers (eventos externos).
+ * Para cada tarefa que colide com algum blocker, empurra para o próximo
+ * espaço livre — preservando ordem relativa. Eventos externos NUNCA são
+ * alterados (apenas respeitados).
+ */
+export function reflowConflicts(
+  tasks: ReflowTask[],
+  events: ReflowBlock[],
+  options: ReflowOptions = {},
+): ReflowResult {
+  const dayStart = options.dayStart ?? 0;
+  const buffer = Math.max(0, options.buffer ?? 0);
+
+  const blockers = events
+    .filter((e) => e.end > e.start)
+    .map((e) => ({ start: e.start, end: e.end }))
+    .sort((a, b) => a.start - b.start);
+
+  const ordered = tasks
+    .slice()
+    .sort((a, b) => a.start - b.start || a.id.localeCompare(b.id));
+
+  const occupied: ReflowBlock[] = blockers.slice();
+  const changes: Record<string, number> = {};
+
+  for (const t of ordered) {
+    const desired = Math.max(dayStart, t.start);
+    const placed = fitPast(desired, t.duration, occupied);
+    if (placed !== t.start) changes[t.id] = placed;
+    occupied.push({ start: placed, end: placed + t.duration + buffer });
+    occupied.sort((a, b) => a.start - b.start);
+  }
+
+  return { changes };
+}
