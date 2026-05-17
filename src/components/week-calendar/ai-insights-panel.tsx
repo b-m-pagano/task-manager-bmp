@@ -25,7 +25,12 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { analyzeDay, type AiInsights, type AiSuggestion } from "@/lib/ai/insights.functions";
+import {
+  analyzeDay,
+  type AiInsights,
+  type AiSuggestion,
+  type AiTaskRisk,
+} from "@/lib/ai/insights.functions";
 
 interface AiInsightsPanelProps {
   day: string;
