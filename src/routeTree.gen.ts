@@ -19,6 +19,7 @@ import { Route as AuthenticatedAppTasksRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppProjectsRouteImport } from './routes/_authenticated/app.projects'
 import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
+import { Route as AuthenticatedAppFocusRouteImport } from './routes/_authenticated/app.focus'
 import { Route as AuthenticatedAppCategoriesRouteImport } from './routes/_authenticated/app.categories'
 
 const LoginRoute = LoginRouteImport.update({
@@ -72,6 +73,11 @@ const AuthenticatedAppInboxRoute = AuthenticatedAppInboxRouteImport.update({
   path: '/app/inbox',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAppFocusRoute = AuthenticatedAppFocusRouteImport.update({
+  id: '/app/focus',
+  path: '/app/focus',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAppCategoriesRoute =
   AuthenticatedAppCategoriesRouteImport.update({
     id: '/app/categories',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app/categories': typeof AuthenticatedAppCategoriesRoute
+  '/app/focus': typeof AuthenticatedAppFocusRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/projects': typeof AuthenticatedAppProjectsRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app/categories': typeof AuthenticatedAppCategoriesRoute
+  '/app/focus': typeof AuthenticatedAppFocusRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
   '/app/projects': typeof AuthenticatedAppProjectsRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/app/categories': typeof AuthenticatedAppCategoriesRoute
+  '/_authenticated/app/focus': typeof AuthenticatedAppFocusRoute
   '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
   '/_authenticated/app/projects': typeof AuthenticatedAppProjectsRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/app/categories'
+    | '/app/focus'
     | '/app/inbox'
     | '/app/projects'
     | '/app/settings'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/app/categories'
+    | '/app/focus'
     | '/app/inbox'
     | '/app/projects'
     | '/app/settings'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/app/categories'
+    | '/_authenticated/app/focus'
     | '/_authenticated/app/inbox'
     | '/_authenticated/app/projects'
     | '/_authenticated/app/settings'
@@ -235,6 +247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppInboxRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/focus': {
+      id: '/_authenticated/app/focus'
+      path: '/app/focus'
+      fullPath: '/app/focus'
+      preLoaderRoute: typeof AuthenticatedAppFocusRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/app/categories': {
       id: '/_authenticated/app/categories'
       path: '/app/categories'
@@ -247,6 +266,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAppCategoriesRoute: typeof AuthenticatedAppCategoriesRoute
+  AuthenticatedAppFocusRoute: typeof AuthenticatedAppFocusRoute
   AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
   AuthenticatedAppProjectsRoute: typeof AuthenticatedAppProjectsRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
@@ -258,6 +278,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppCategoriesRoute: AuthenticatedAppCategoriesRoute,
+  AuthenticatedAppFocusRoute: AuthenticatedAppFocusRoute,
   AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
   AuthenticatedAppProjectsRoute: AuthenticatedAppProjectsRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
@@ -279,3 +300,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
