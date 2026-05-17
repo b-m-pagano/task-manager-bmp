@@ -1,21 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_authenticated/app/")({
-  component: DashboardPage,
-  head: () => ({ meta: [{ title: "Dashboard — FocusQueue" }] }),
+export const Route = createFileRoute("/_authenticated/app/tasks")({
+  component: TasksPage,
+  head: () => ({ meta: [{ title: "Tarefas — FocusQueue" }] }),
 });
 
-function DashboardPage() {
+function TasksPage() {
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-3 border-b border-border px-6 py-3">
-        <h1 className="text-base font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="text-base font-semibold tracking-tight">Tarefas</h1>
       </header>
       <div className="flex flex-1 items-center justify-center p-8">
         <div className="max-w-md text-center">
           <h2 className="text-lg font-semibold text-foreground">Em construção</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Visão geral do seu dia, próximas tarefas e métricas de foco aparecerão aqui.
+            Lista universal de tarefas, filtros e ordenação manual virão aqui.
           </p>
         </div>
       </div>
