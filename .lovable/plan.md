@@ -1,43 +1,78 @@
-## Diagnóstico
+## Resumo
 
-Hoje o calendário do mês vive como um painel fixo de **248px** à esquerda da visão Semana (`app.week.tsx`, aside com `MiniCalendar` + lista de categorias). Ele rouba cerca de **23% da largura útil** em telas como a sua (1078px), comprimindo a grade semanal — que é a visão principal do produto.
+Habilitar login por **e-mail/senha** convivendo com o Google atual, e desacoplar a sincronização do Google Calendar do método de login — passando a usar a tabela `google_connections` (que já existe e tem `refresh_token`) para sync sob demanda, mesmo de quem entra com e-mail.
 
-## Recomendação
+## Decisões confirmadas
 
-Seguir exatamente a sua intuição, com um pequeno reforço:
+- Manter os dois métodos de login (Google + e-mail/senha).
+- Sync **sob demanda** (botão), sem cron — mas com token persistente (refresh_token salvo).
+- **Auto-confirmar** cadastros (sem verificação de e-mail).
 
-1. **Criar uma rota `Mês` (`/app/month`)** na sidebar, posicionada **acima de "Semana"** no grupo Principal. Ao clicar, abre uma visão de mês inteira, em tela cheia, com bom espaço para respirar e clicar em qualquer dia para "saltar" para a semana correspondente.
-2. **Remover o aside fixo da Semana** (mini-calendário + lista de categorias). A semana passa a ocupar 100% da largura — ganho imediato de respiro visual.
-3. **Adicionar um seletor de data discreto no header da Semana**: um botão `[ícone calendário] 18–24 nov` que abre um popover com o mini-calendário sob demanda. Quem precisa pular para outra semana ainda consegue em 2 cliques, sem ocupar espaço permanente.
-4. **Mover a legenda de categorias** para um popover compacto no mesmo header (ícone de etiqueta), já que ela também era ruído permanente na lateral.
+## O que muda
 
-Isso preserva 100% da funcionalidade atual, devolve espaço à visão principal e torna o mês um destino intencional — não um chrome sempre-presente.
+### 1. Auth (Supabase)
+- `configure_auth`: `auto_confirm_email: true`, `password_hibp_enabled: true` (proteção contra senhas vazadas).
+- Google permanece como provider habilitado.
 
-## Mudanças por arquivo
+### 2. Tela `/login`
+Refatorar `src/routes/login.tsx`:
+- Form principal: **e-mail + senha** com tabs "Entrar" / "Criar conta".
+- Botão secundário "Entrar com Google" (fluxo `lovable.auth.signInWithOAuth` que já existe).
+- Link "Esqueci minha senha" → `supabase.auth.resetPasswordForEmail` com `redirectTo: ${origin}/reset-password`.
 
-- `src/components/app-sidebar.tsx`
-  - Adicionar item `{ title: "Mês", url: "/app/month", icon: CalendarRange }` **antes** de `Semana` em `mainItems`.
+### 3. Nova rota `/reset-password`
+Página pública que detecta `type=recovery` no hash e chama `supabase.auth.updateUser({ password })`.
 
-- `src/routes/_authenticated/app.month.tsx` (novo)
-  - Grade 7×N com o mês inteiro, indicadores leves (ponto colorido por categoria) para dias com tarefas/eventos.
-  - Clicar em um dia → navega para `/app/week` com aquela data selecionada (via search param `?day=YYYY-MM-DD`).
-  - Navegação ‹ Mês › no header, botão "Hoje".
+### 4. Calendar deixa de depender do `provider_token` da sessão
+Hoje `CalendarSyncButton` lê `session.provider_token` — isso só funciona logo após login Google e expira em ~1h. Vamos centralizar em `google_connections`:
 
-- `src/routes/_authenticated/app.week.tsx`
-  - Remover o `<aside>` lateral (linhas ~463–490).
-  - No header, adicionar dois `Popover`s: `DatePickerPopover` (envolvendo o `MiniCalendar` existente, reaproveitado) e `CategoryLegendPopover`.
-  - Aceitar `?day=` no search da rota para pré-selecionar a semana quando vier do Mês.
+- **Quem entra com Google**: ao detectar `provider_token` + `provider_refresh_token` na sessão (via `onAuthStateChange`), gravar/atualizar `google_connections` (`access_token`, `refresh_token`, `expires_at`). Server function `upsertGoogleConnection`.
+- **Quem entra com e-mail**: nova tela em Configurações com botão **"Conectar Google Calendar"** que dispara um OAuth próprio (popup) com `access_type=offline` + `prompt=consent` e grava os tokens no `google_connections`.
+- **Sync** (`syncCalendarRange`): em vez de receber `provider_token` do cliente, lê `google_connections` server-side; se `expires_at < now()`, refaz via `refresh_token` (endpoint `oauth2.googleapis.com/token`) e atualiza a linha. Botão de sync no header só verifica se existe conexão; se não, mostra "Conecte seu Google Calendar".
 
-- `src/components/week-calendar/mini-calendar.tsx` — sem mudanças, reaproveitado dentro do popover.
+### 5. Tela de Configurações → seção "Conexões"
+- Mostra status: "Google Calendar conectado · última sync HH:mm" ou CTA de conectar.
+- Botão "Desconectar" (apaga linha em `google_connections`).
+
+## Secrets necessários
+
+Para o fluxo de e-mail (atual login Google usa OAuth gerenciado pelo Lovable, que **não expõe `refresh_token`**), precisamos de credenciais OAuth próprias para o connector de Calendar:
+
+- `GOOGLE_OAUTH_CLIENT_ID`
+- `GOOGLE_OAUTH_CLIENT_SECRET`
+
+Você cria em Google Cloud Console → APIs & Services → Credentials → OAuth Client ID (Web). Habilita Google Calendar API. Adiciona como redirect URI: `https://<seu-domínio-lovable>/api/public/google/callback`.
+
+Vou pedir esses secrets via `add_secret` na hora da implementação e te passo o passo-a-passo de criação no Google Cloud.
 
 ## Detalhes técnicos
 
-- A rota `/app/month` usa `listWeekData` por semana ou um novo `listMonthData` server fn enxuto (apenas `scheduled_day` + `category_id` dos pendentes do mês) para os indicadores — token-eficiente, sem trazer o payload completo da semana.
-- O `?day=` na Semana é opcional; quando ausente, mantém o comportamento atual (semana corrente).
-- Nada muda na lógica de agendamento, drag-and-drop, IA ou Focus Mode — é só rearrumação de chrome.
+```text
+src/
+├── routes/
+│   ├── login.tsx                       # refatorado: tabs e-mail/senha + Google
+│   ├── reset-password.tsx              # novo, público
+│   ├── _authenticated/
+│   │   └── app.settings.tsx            # + seção "Conexões"
+│   └── api/public/google/
+│       ├── start.ts                    # novo: inicia OAuth próprio (state CSRF)
+│       └── callback.ts                 # novo: troca code → tokens, grava google_connections
+├── lib/
+│   ├── google/
+│   │   ├── tokens.functions.ts         # novo: getValidAccessToken (refresh on demand)
+│   │   └── connection.functions.ts     # novo: upsert/disconnect server fns
+│   └── calendar.functions.ts           # editado: usa google_connections em vez de provider_token
+└── components/week-calendar/
+    └── calendar-sync-button.tsx        # editado: sem provider_token; chama syncCalendarRange direto
+```
 
 ## Fora de escopo
 
-- Redesign de cores/tipografia.
-- Drag-and-drop entre dias na visão Mês (pode vir depois, se você quiser).
-- Mudanças no Focus, IA ou engine de fila.
+- Cron / sync em background (decidiu não).
+- Migração forçada de contas existentes — usuários atuais (login Google) continuam funcionando; podem definir senha depois em Configurações se quiserem.
+- Microsoft/Apple SSO.
+
+## Riscos
+
+- A sessão Google atual via broker do Lovable **não devolve `provider_refresh_token`** consistentemente. Se confirmarmos isso, mesmo quem loga com Google vai precisar passar uma vez pelo "Conectar Calendar" para liberar refresh persistente. Vou testar e ajustar.
+- Mudar `calendar.functions.ts` para ler tokens do DB altera a assinatura de `syncCalendarRange` — `CalendarSyncButton` precisa ser atualizado no mesmo PR para não quebrar.
