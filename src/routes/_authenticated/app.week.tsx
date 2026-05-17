@@ -317,6 +317,11 @@ function WeekPage() {
         <div className="flex-1">
           <QuickAddBar todayISO={isoDay(new Date())} />
         </div>
+        <CalendarSyncButton
+          from={daysISO[0]}
+          to={daysISO[daysISO.length - 1]}
+          onSynced={handleSynced}
+        />
       </div>
 
       <div className="flex min-h-0 flex-1">
