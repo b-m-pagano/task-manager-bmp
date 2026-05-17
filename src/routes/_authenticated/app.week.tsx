@@ -412,6 +412,25 @@ function WeekPage() {
         <div className="flex-1">
           <QuickAddBar todayISO={isoDay(new Date())} />
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => replanDay(isoDay(selected))}
+          className="shrink-0"
+          title="Replanejar dia selecionado"
+        >
+          <Sparkles className="mr-1 h-3.5 w-3.5" /> Replanejar
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => carryMut.mutate()}
+          disabled={carryMut.isPending}
+          className="shrink-0"
+          title="Migrar tarefas pendentes para hoje"
+        >
+          <ArrowDownToLine className="mr-1 h-3.5 w-3.5" /> Migrar pendentes
+        </Button>
         <CalendarSyncButton
           from={daysISO[0]}
           to={daysISO[daysISO.length - 1]}
