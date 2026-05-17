@@ -432,6 +432,27 @@ function WeekPage() {
         >
           <ArrowDownToLine className="mr-1 h-3.5 w-3.5" /> Migrar pendentes
         </Button>
+        <AiInsightsPanel
+          day={isoDay(selected)}
+          onReplanDay={replanDay}
+          onApplySuggestion={(taskId, day, startMinute) => {
+            const update = { id: taskId, scheduled_day: day, start_minute: startMinute };
+            qc.setQueryData(["week", daysISO[0]], (prev: any) => {
+              if (!prev) return prev;
+              const h = String(Math.floor(startMinute / 60)).padStart(2, "0");
+              const m = String(startMinute % 60).padStart(2, "0");
+              return {
+                ...prev,
+                tasks: prev.tasks.map((t: RawTask) =>
+                  t.id === taskId
+                    ? { ...t, scheduled_day: day, scheduled_start: `${day}T${h}:${m}:00` }
+                    : t,
+                ),
+              };
+            });
+            rescheduleMut.mutate([update]);
+          }}
+        />
         <CalendarSyncButton
           from={daysISO[0]}
           to={daysISO[daysISO.length - 1]}
