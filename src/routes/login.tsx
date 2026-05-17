@@ -1,8 +1,15 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
 import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/use-auth-ready";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -11,15 +18,15 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const { user, isReady } = useAuthReady();
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
 
   useEffect(() => {
     if (isReady && user) navigate({ to: "/app/week" });
   }, [isReady, user, navigate]);
 
-  async function signIn() {
-    setLoading(true);
+  async function signInWithGoogle() {
+    setLoadingGoogle(true);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
       extraParams: {
@@ -31,7 +38,7 @@ function LoginPage() {
     });
     if (result.error) {
       toast.error("Falha ao entrar", { description: String(result.error) });
-      setLoading(false);
+      setLoadingGoogle(false);
       return;
     }
     if (result.redirected) return;
@@ -40,25 +47,181 @@ function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
-        <div className="mx-auto h-10 w-10 rounded-lg bg-primary" />
-        <h1 className="mt-5 text-xl font-semibold tracking-tight">FocusQueue</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Entre com Google para sincronizar seu calendário.
-        </p>
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-sm">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 rounded-lg bg-primary" />
+          <h1 className="mt-5 text-xl font-semibold tracking-tight">FocusQueue</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Acesse sua fila de foco.</p>
+        </div>
+
+        <Tabs defaultValue="signin" className="mt-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="signin">Entrar</TabsTrigger>
+            <TabsTrigger value="signup">Criar conta</TabsTrigger>
+          </TabsList>
+          <TabsContent value="signin" className="mt-4">
+            <SignInForm />
+          </TabsContent>
+          <TabsContent value="signup" className="mt-4">
+            <SignUpForm />
+          </TabsContent>
+        </Tabs>
+
+        <div className="my-5 flex items-center gap-3">
+          <Separator className="flex-1" />
+          <span className="text-xs text-muted-foreground">ou</span>
+          <Separator className="flex-1" />
+        </div>
+
         <button
-          onClick={signIn}
-          disabled={loading}
-          className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium hover:bg-accent disabled:opacity-50"
+          onClick={signInWithGoogle}
+          disabled={loadingGoogle}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium hover:bg-accent disabled:opacity-50"
         >
-          <GoogleG /> {loading ? "Conectando…" : "Entrar com Google"}
+          <GoogleG /> {loadingGoogle ? "Conectando…" : "Continuar com Google"}
         </button>
-        <p className="mt-5 text-xs text-muted-foreground">
-          Permissão de leitura ao Google Calendar para evitar conflitos com seus
-          eventos.
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Entrar com Google já libera o sync do seu Calendar.
         </p>
       </div>
     </div>
+  );
+}
+
+function SignInForm() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      toast.error("Não foi possível entrar", { description: error.message });
+      return;
+    }
+    navigate({ to: "/app/week" });
+  }
+
+  async function onForgot() {
+    if (!email) {
+      toast.message("Informe seu e-mail acima", {
+        description: "Vamos enviar o link de redefinição para ele.",
+      });
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) toast.error("Erro ao enviar e-mail", { description: error.message });
+    else toast.success("E-mail enviado", { description: "Verifique sua caixa de entrada." });
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <div className="space-y-1.5">
+        <Label htmlFor="email">E-mail</Label>
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="password">Senha</Label>
+        <Input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? "Entrando…" : "Entrar"}
+      </Button>
+      <button
+        type="button"
+        onClick={onForgot}
+        className="block w-full text-center text-xs text-muted-foreground hover:underline"
+      >
+        Esqueci minha senha
+      </button>
+    </form>
+  );
+}
+
+function SignUpForm() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password.length < 8) {
+      toast.error("Senha curta", { description: "Use pelo menos 8 caracteres." });
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/app/week` },
+    });
+    setLoading(false);
+    if (error) {
+      toast.error("Não foi possível cadastrar", { description: error.message });
+      return;
+    }
+    toast.success("Conta criada!");
+    navigate({ to: "/app/week" });
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <div className="space-y-1.5">
+        <Label htmlFor="su-email">E-mail</Label>
+        <Input
+          id="su-email"
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="su-password">Senha</Label>
+        <Input
+          id="su-password"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <p className="text-[11px] text-muted-foreground">Mínimo 8 caracteres.</p>
+      </div>
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? "Criando…" : "Criar conta"}
+      </Button>
+      <p className="text-center text-[11px] text-muted-foreground">
+        Você pode conectar o Google Calendar depois em{" "}
+        <Link to="/app/settings" className="underline">
+          Configurações
+        </Link>
+        .
+      </p>
+    </form>
   );
 }
 
