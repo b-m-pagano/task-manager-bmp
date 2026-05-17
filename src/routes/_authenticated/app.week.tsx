@@ -3,8 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
-import { Plus, Sparkles, ArrowDownToLine } from "lucide-react";
+import { Plus, Sparkles, ArrowDownToLine, CalendarDays, Tags } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { WeekHeader } from "@/components/week-calendar/week-header";
 import { MiniCalendar } from "@/components/week-calendar/mini-calendar";
@@ -23,14 +24,21 @@ import { AiInsightsPanel } from "@/components/week-calendar/ai-insights-panel";
 import { QuickAddBar } from "@/components/tasks/quick-add-bar";
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { carryUnfinished, listWeekData, rescheduleTasks } from "@/lib/tasks.functions";
 import { reflowConflicts, reflowDay, type ReflowBlock, type ReflowTask } from "@/lib/queue/reflow";
 import { autoScheduleDay, type AutoTask, type AutoBlock } from "@/lib/queue/auto-schedule";
 import { cn } from "@/lib/utils";
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 export const Route = createFileRoute("/_authenticated/app/week")({
   component: WeekPage,
   head: () => ({ meta: [{ title: "Semana — FocusQueue" }] }),
+  validateSearch: (search) =>
+    z
+      .object({ day: z.string().regex(ISO_DATE).optional() })
+      .parse(search),
 });
 
 interface RawTask {
@@ -64,8 +72,16 @@ function mapStatusForCard(s: RawTask["status"]): "pending" | "doing" | "done" {
 }
 
 function WeekPage() {
-  const [selected, setSelected] = useState(() => new Date());
-  const [cursor, setCursor] = useState(() => new Date());
+  const { day: daySearch } = Route.useSearch();
+  const initial = useMemo(() => {
+    if (daySearch) {
+      const [y, m, d] = daySearch.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return new Date();
+  }, [daySearch]);
+  const [selected, setSelected] = useState(initial);
+  const [cursor, setCursor] = useState(initial);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TaskDialogTask | null>(null);
   const [createDay, setCreateDay] = useState<string>(isoDay(new Date()));
@@ -410,6 +426,53 @@ function WeekPage() {
           <Plus className="mr-1 h-3.5 w-3.5" /> Nova tarefa
           <span className="ml-2 hidden text-[10px] opacity-60 sm:inline">N</span>
         </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline" className="shrink-0" title="Escolher data">
+              <CalendarDays className="mr-1 h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{format(selected, "d MMM")}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-[260px] p-0">
+            <MiniCalendar
+              selected={selected}
+              onSelect={setSelected}
+              cursor={cursor}
+              onCursorChange={setCursor}
+            />
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="shrink-0"
+              title="Legenda de categorias"
+            >
+              <Tags className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-56 p-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Categorias
+            </p>
+            <ul className="space-y-1.5">
+              {categories.map((c) => (
+                <li key={c.id} className="flex items-center gap-2 text-xs">
+                  <span
+                    className="h-2.5 w-2.5 rounded-sm"
+                    style={{ backgroundColor: c.color }}
+                  />
+                  <span className="text-foreground">{c.name}</span>
+                </li>
+              ))}
+              {categories.length === 0 && (
+                <li className="text-xs text-muted-foreground">Nenhuma ainda</li>
+              )}
+            </ul>
+          </PopoverContent>
+        </Popover>
         <div className="flex-1">
           <QuickAddBar todayISO={isoDay(new Date())} />
         </div>
@@ -461,34 +524,6 @@ function WeekPage() {
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-[248px] shrink-0 flex-col border-r border-border bg-card/40 lg:flex">
-          <MiniCalendar
-            selected={selected}
-            onSelect={setSelected}
-            cursor={cursor}
-            onCursorChange={setCursor}
-          />
-          <div className="border-t border-border p-3">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Categorias
-            </p>
-            <ul className="space-y-1.5">
-              {categories.map((c) => (
-                <li key={c.id} className="flex items-center gap-2 text-xs">
-                  <span
-                    className="h-2.5 w-2.5 rounded-sm"
-                    style={{ backgroundColor: c.color }}
-                  />
-                  <span className="text-foreground">{c.name}</span>
-                </li>
-              ))}
-              {categories.length === 0 && (
-                <li className="text-xs text-muted-foreground">Nenhuma ainda</li>
-              )}
-            </ul>
-          </div>
-        </aside>
-
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex border-b border-border bg-background/85 backdrop-blur">
             <div className="w-16 shrink-0" />

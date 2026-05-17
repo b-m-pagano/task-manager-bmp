@@ -1,65 +1,43 @@
-# Parte 1 — Fundação base (modo "preservar")
+## Diagnóstico
 
-Combinado: mantemos tudo que já funciona (DnD na Semana, IA, tabelas Supabase, auth) e apenas adicionamos/extraímos o que falta para bater com o prompt original. Ao fim do projeto, reavaliamos.
+Hoje o calendário do mês vive como um painel fixo de **248px** à esquerda da visão Semana (`app.week.tsx`, aside com `MiniCalendar` + lista de categorias). Ele rouba cerca de **23% da largura útil** em telas como a sua (1078px), comprimindo a grade semanal — que é a visão principal do produto.
 
-## Diff resumido (o que falta vs. o que existe)
+## Recomendação
 
-| Item do prompt | Estado | Ação |
-|---|---|---|
-| Dark mode com toggle | Tokens existem, falta provider + toggle | **Adicionar** |
-| Sidebar (shadcn) | Sidebar caseira no `_authenticated.tsx` | **Substituir** por shadcn `Sidebar` |
-| Header | Não existe | **Criar** (com `SidebarTrigger` + theme toggle + user menu) |
-| Dashboard | Não existe | **Criar** página vazia em `/app` |
-| Tarefas | Não existe (só Inbox) | **Criar** `/app/tasks` vazia |
-| Projetos | Não existe | **Criar** `/app/projects` vazia |
-| Agenda Semanal | Existe (`app.week.tsx`) | **Preservar** |
-| Configurações | Existe | **Preservar** |
-| TaskCard | Lógica inline em `app.week.tsx` | **Extrair** para `src/components/task-card.tsx` |
-| CalendarGrid | Inline | **Extrair** para `src/components/calendar-grid.tsx` |
-| FloatingActionButton | Não existe | **Criar** `src/components/fab.tsx` |
-| Card / Modal / Dialog | shadcn já disponíveis | Nada a fazer |
+Seguir exatamente a sua intuição, com um pequeno reforço:
 
-## Etapas
+1. **Criar uma rota `Mês` (`/app/month`)** na sidebar, posicionada **acima de "Semana"** no grupo Principal. Ao clicar, abre uma visão de mês inteira, em tela cheia, com bom espaço para respirar e clicar em qualquer dia para "saltar" para a semana correspondente.
+2. **Remover o aside fixo da Semana** (mini-calendário + lista de categorias). A semana passa a ocupar 100% da largura — ganho imediato de respiro visual.
+3. **Adicionar um seletor de data discreto no header da Semana**: um botão `[ícone calendário] 18–24 nov` que abre um popover com o mini-calendário sob demanda. Quem precisa pular para outra semana ainda consegue em 2 cliques, sem ocupar espaço permanente.
+4. **Mover a legenda de categorias** para um popover compacto no mesmo header (ícone de etiqueta), já que ela também era ruído permanente na lateral.
 
-### 1. Dark mode
-- Criar `src/components/theme-provider.tsx` (controla classe `dark` no `<html>`, persiste em `localStorage`, respeita `prefers-color-scheme`).
-- Criar `src/components/theme-toggle.tsx` (botão sol/lua usando shadcn `DropdownMenu`).
-- Envolver app no `__root.tsx` com `<ThemeProvider>`.
+Isso preserva 100% da funcionalidade atual, devolve espaço à visão principal e torna o mês um destino intencional — não um chrome sempre-presente.
 
-### 2. Sidebar shadcn + Header
-- Substituir a `<aside>` caseira do `_authenticated.tsx` por shadcn `Sidebar` (`collapsible="icon"`) em novo `src/components/app-sidebar.tsx`.
-- Itens: Dashboard, Semana, Hoje, Inbox, Tarefas, Projetos, Categorias, Configurações.
-- Criar `src/components/app-header.tsx` com `SidebarTrigger` + `ThemeToggle` + botão "Sair".
-- Layout em `_authenticated.tsx`: `<SidebarProvider><AppSidebar/><div><AppHeader/><Outlet/></div></SidebarProvider>`.
+## Mudanças por arquivo
 
-### 3. Páginas vazias
-Criar com placeholder mínimo (título + texto "Em construção"):
-- `src/routes/_authenticated/app.index.tsx` — **transformar em Dashboard** (hoje é redirect, virar página real).
-- `src/routes/_authenticated/app.tasks.tsx` — Tarefas
-- `src/routes/_authenticated/app.projects.tsx` — Projetos
+- `src/components/app-sidebar.tsx`
+  - Adicionar item `{ title: "Mês", url: "/app/month", icon: CalendarRange }` **antes** de `Semana` em `mainItems`.
 
-### 4. Componentes reutilizáveis
-- `src/components/task-card.tsx` — extrai a UI do card de tarefa do `app.week.tsx` (visual + props, sem mover lógica de DnD agora).
-- `src/components/calendar-grid.tsx` — extrai a grade semanal (estrutura visual; o `app.week.tsx` continua orquestrando estado/DnD).
-- `src/components/fab.tsx` — botão flutuante padrão (ícone `+`, posição fixed bottom-right, variantes via `cva`).
+- `src/routes/_authenticated/app.month.tsx` (novo)
+  - Grade 7×N com o mês inteiro, indicadores leves (ponto colorido por categoria) para dias com tarefas/eventos.
+  - Clicar em um dia → navega para `/app/week` com aquela data selecionada (via search param `?day=YYYY-MM-DD`).
+  - Navegação ‹ Mês › no header, botão "Hoje".
 
-> **Importante:** a extração é apenas estrutural — `app.week.tsx` continua funcionando igual, só passa a importar os componentes em vez de ter o JSX inline. Nada de DnD/IA é tocado.
+- `src/routes/_authenticated/app.week.tsx`
+  - Remover o `<aside>` lateral (linhas ~463–490).
+  - No header, adicionar dois `Popover`s: `DatePickerPopover` (envolvendo o `MiniCalendar` existente, reaproveitado) e `CategoryLegendPopover`.
+  - Aceitar `?day=` no search da rota para pré-selecionar a semana quando vier do Mês.
 
-### 5. NÃO fazer nesta etapa (conforme prompt)
-- DnD, automações, reagendamento, IA, Google Calendar → preservados como estão, sem evolução.
+- `src/components/week-calendar/mini-calendar.tsx` — sem mudanças, reaproveitado dentro do popover.
 
 ## Detalhes técnicos
 
-- **Stack:** mantemos TanStack Start (não vamos para Next.js — seria reescrever tudo).
-- **Tokens de cor:** já em `oklch` no `src/styles.css`; vou só validar que a versão `.dark` existe e está consistente.
-- **Sem migrações de DB** nesta parte.
-- **Sem novas dependências** (shadcn sidebar e dropdown-menu já estão no projeto).
+- A rota `/app/month` usa `listWeekData` por semana ou um novo `listMonthData` server fn enxuto (apenas `scheduled_day` + `category_id` dos pendentes do mês) para os indicadores — token-eficiente, sem trazer o payload completo da semana.
+- O `?day=` na Semana é opcional; quando ausente, mantém o comportamento atual (semana corrente).
+- Nada muda na lógica de agendamento, drag-and-drop, IA ou Focus Mode — é só rearrumação de chrome.
 
-## Validação ao final
-- Login → Dashboard carrega.
-- Sidebar colapsa/expande, todas as rotas navegam.
-- Toggle de tema alterna claro/escuro e persiste.
-- `/app/week` continua funcionando exatamente como antes (DnD, IA, etc.).
-- Build limpo.
+## Fora de escopo
 
-Se aprovar, eu implemento na sequência acima.
+- Redesign de cores/tipografia.
+- Drag-and-drop entre dias na visão Mês (pode vir depois, se você quiser).
+- Mudanças no Focus, IA ou engine de fila.

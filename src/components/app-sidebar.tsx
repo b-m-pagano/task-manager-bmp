@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Calendar,
   CalendarDays,
+  CalendarRange,
   Inbox,
   ListTodo,
   FolderKanban,
@@ -25,6 +26,7 @@ import {
 
 const mainItems = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, exact: true },
+  { title: "Mês", url: "/app/month", icon: CalendarRange },
   { title: "Semana", url: "/app/week", icon: Calendar },
   { title: "Hoje", url: "/app/today", icon: CalendarDays },
   { title: "Foco", url: "/app/focus", icon: Focus },

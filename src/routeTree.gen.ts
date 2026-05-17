@@ -18,6 +18,7 @@ import { Route as AuthenticatedAppTodayRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppTasksRouteImport } from './routes/_authenticated/app.tasks'
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppProjectsRouteImport } from './routes/_authenticated/app.projects'
+import { Route as AuthenticatedAppMonthRouteImport } from './routes/_authenticated/app.month'
 import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
 import { Route as AuthenticatedAppFocusRouteImport } from './routes/_authenticated/app.focus'
 import { Route as AuthenticatedAppCategoriesRouteImport } from './routes/_authenticated/app.categories'
@@ -68,6 +69,11 @@ const AuthenticatedAppProjectsRoute =
     path: '/app/projects',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAppMonthRoute = AuthenticatedAppMonthRouteImport.update({
+  id: '/app/month',
+  path: '/app/month',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAppInboxRoute = AuthenticatedAppInboxRouteImport.update({
   id: '/app/inbox',
   path: '/app/inbox',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/app/categories': typeof AuthenticatedAppCategoriesRoute
   '/app/focus': typeof AuthenticatedAppFocusRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/app/month': typeof AuthenticatedAppMonthRoute
   '/app/projects': typeof AuthenticatedAppProjectsRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/tasks': typeof AuthenticatedAppTasksRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/app/categories': typeof AuthenticatedAppCategoriesRoute
   '/app/focus': typeof AuthenticatedAppFocusRoute
   '/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/app/month': typeof AuthenticatedAppMonthRoute
   '/app/projects': typeof AuthenticatedAppProjectsRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/tasks': typeof AuthenticatedAppTasksRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/_authenticated/app/categories': typeof AuthenticatedAppCategoriesRoute
   '/_authenticated/app/focus': typeof AuthenticatedAppFocusRoute
   '/_authenticated/app/inbox': typeof AuthenticatedAppInboxRoute
+  '/_authenticated/app/month': typeof AuthenticatedAppMonthRoute
   '/_authenticated/app/projects': typeof AuthenticatedAppProjectsRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/tasks': typeof AuthenticatedAppTasksRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/app/categories'
     | '/app/focus'
     | '/app/inbox'
+    | '/app/month'
     | '/app/projects'
     | '/app/settings'
     | '/app/tasks'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/app/categories'
     | '/app/focus'
     | '/app/inbox'
+    | '/app/month'
     | '/app/projects'
     | '/app/settings'
     | '/app/tasks'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/categories'
     | '/_authenticated/app/focus'
     | '/_authenticated/app/inbox'
+    | '/_authenticated/app/month'
     | '/_authenticated/app/projects'
     | '/_authenticated/app/settings'
     | '/_authenticated/app/tasks'
@@ -240,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppProjectsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/month': {
+      id: '/_authenticated/app/month'
+      path: '/app/month'
+      fullPath: '/app/month'
+      preLoaderRoute: typeof AuthenticatedAppMonthRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/app/inbox': {
       id: '/_authenticated/app/inbox'
       path: '/app/inbox'
@@ -268,6 +287,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAppCategoriesRoute: typeof AuthenticatedAppCategoriesRoute
   AuthenticatedAppFocusRoute: typeof AuthenticatedAppFocusRoute
   AuthenticatedAppInboxRoute: typeof AuthenticatedAppInboxRoute
+  AuthenticatedAppMonthRoute: typeof AuthenticatedAppMonthRoute
   AuthenticatedAppProjectsRoute: typeof AuthenticatedAppProjectsRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppTasksRoute: typeof AuthenticatedAppTasksRoute
@@ -280,6 +300,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppCategoriesRoute: AuthenticatedAppCategoriesRoute,
   AuthenticatedAppFocusRoute: AuthenticatedAppFocusRoute,
   AuthenticatedAppInboxRoute: AuthenticatedAppInboxRoute,
+  AuthenticatedAppMonthRoute: AuthenticatedAppMonthRoute,
   AuthenticatedAppProjectsRoute: AuthenticatedAppProjectsRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppTasksRoute: AuthenticatedAppTasksRoute,
