@@ -9,6 +9,7 @@ interface EventCardProps {
   category?: MockCategory;
   project?: MockProject;
   onToggleStatus?: () => void;
+  isTogglingStatus?: boolean;
 }
 
 const priorityRing: Record<MockEvent["priority"], string> = {
