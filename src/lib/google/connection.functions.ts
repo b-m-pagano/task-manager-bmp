@@ -1,13 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getRequest } from "@tanstack/react-start/server";
+import { getRequestHeader, getRequestHost } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { buildAuthUrl } from "./oauth.server";
 
+export function getPublicOrigin(): string {
+  const forwardedHost = getRequestHeader("x-forwarded-host");
+  const forwardedProto = getRequestHeader("x-forwarded-proto");
+  const host = forwardedHost ?? getRequestHost();
+  const proto = forwardedProto ?? (host?.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
 function getRedirectUri(): string {
-  const req = getRequest();
-  const origin = new URL(req!.url).origin;
-  return `${origin}/api/public/google/callback`;
+  return `${getPublicOrigin()}/api/public/google/callback`;
 }
 
 export const getGoogleConnectionStatus = createServerFn({ method: "GET" })
