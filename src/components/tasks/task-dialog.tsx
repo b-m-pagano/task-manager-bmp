@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Copy, Trash2, Loader2 } from "lucide-react";
+import { Copy, Inbox, Trash2, Loader2 } from "lucide-react";
 
 import {
   Dialog,
@@ -38,6 +38,7 @@ import {
   updateTask,
   deleteTask,
   duplicateTask,
+  sendToInbox,
 } from "@/lib/tasks.functions";
 import { SubtaskList } from "./subtask-list";
 
@@ -117,6 +118,7 @@ export function TaskDialog({
   const updateFn = useServerFn(updateTask);
   const deleteFn = useServerFn(deleteTask);
   const duplicateFn = useServerFn(duplicateTask);
+  const inboxFn = useServerFn(sendToInbox);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -208,6 +210,17 @@ export function TaskDialog({
       onOpenChange(false);
     },
     onError: (err) => toast.error("Falha ao duplicar", { description: String(err) }),
+  });
+
+  const moveInboxMut = useMutation({
+    mutationFn: () => inboxFn({ data: { id: task!.id } }),
+    onSuccess: () => {
+      toast.success("Movida para Inbox");
+      qc.invalidateQueries({ queryKey: ["week"] });
+      qc.invalidateQueries({ queryKey: ["inbox"] });
+      onOpenChange(false);
+    },
+    onError: (err) => toast.error("Falha ao mover", { description: String(err) }),
   });
 
   // Cmd/Ctrl+Enter to save
