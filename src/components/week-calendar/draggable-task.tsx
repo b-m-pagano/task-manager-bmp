@@ -133,7 +133,7 @@ export function DraggableTask({
         )}
         style={wrapperStyle}
       >
-        <EventCard event={event} category={category} project={project} />
+        <EventCard event={event} category={category} project={project} onToggleStatus={onToggleStatus} />
       </div>
     </>
   );
