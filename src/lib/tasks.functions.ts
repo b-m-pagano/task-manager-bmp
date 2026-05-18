@@ -433,6 +433,7 @@ const ScheduleFromInboxSchema = z.object({
   id: z.string().uuid(),
   scheduled_day: z.string().regex(ISO_DATE),
   start_minute: z.number().int().min(0).max(1439).nullable().optional(),
+  tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
 });
 
 export const scheduleFromInbox = createServerFn({ method: "POST" })
@@ -455,7 +456,11 @@ export const scheduleFromInbox = createServerFn({ method: "POST" })
       .update({
         is_inbox: false,
         scheduled_day: data.scheduled_day,
-        scheduled_start: startTsFromMinute(data.scheduled_day, data.start_minute ?? null),
+        scheduled_start: startTsFromMinute(
+          data.scheduled_day,
+          data.start_minute ?? null,
+          data.tz_offset_minutes,
+        ),
         queue_position: nextPos,
       } as never)
       .eq("id", data.id);
