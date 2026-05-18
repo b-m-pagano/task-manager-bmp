@@ -654,6 +654,12 @@ function WeekPage() {
                           columnRefs={columnRefs}
                           onClick={() => openEditById(t.id)}
                           onDrop={(d) => handleDrop(t.id, d)}
+                          onToggleStatus={() =>
+                            toggleStatusMut.mutate({
+                              id: t.id,
+                              status: t.status === "done" ? "pending" : "done",
+                            })
+                          }
                         />
                       );
                     })}
