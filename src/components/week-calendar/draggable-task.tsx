@@ -27,6 +27,8 @@ interface Props {
   onDrop: (d: DragDrop) => void;
   /** Toggle the task's done/pending status from the status icon. */
   onToggleStatus?: () => void;
+  /** True while the status mutation is in-flight (shows spinner). */
+  isTogglingStatus?: boolean;
   /** Map of day iso → column element, used to resolve cross-column drops. */
   columnRefs: React.MutableRefObject<Record<string, HTMLElement | null>>;
 }
