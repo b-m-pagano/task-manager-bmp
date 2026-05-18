@@ -1,9 +1,12 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EventCard } from "./event-card";
 import { DAY_START_HOUR, PX_PER_MIN, minuteToTop } from "./time-grid";
 import type { MockCategory, MockEvent, MockProject } from "@/lib/mock/week-mock";
+
+const AFTER_HOURS_MIN = 18 * 60;
 
 const SNAP_MIN = 15;
 const DRAG_THRESHOLD = 4;
@@ -146,19 +149,48 @@ function DropPreview({
 }) {
   const col = columnRefs.current[day];
   if (!col) return null;
-  // Render via portal-style absolute positioning into the target column.
+  const endMinute = startMinute + durationMinutes;
+  const startsAfterHours = startMinute >= AFTER_HOURS_MIN;
+  const endsAfterHours = endMinute > AFTER_HOURS_MIN;
+  const isAfterHours = startsAfterHours || endsAfterHours;
+  const fmt = (m: number) =>
+    `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  const warningLabel = startsAfterHours
+    ? `Início ${fmt(startMinute)} após 18h`
+    : `Fim ${fmt(endMinute)} após 18h`;
+
   const node = (
     <div
-      className="pointer-events-none absolute inset-x-1 z-[60] rounded-md border-2 border-dashed border-primary bg-primary/10"
+      className={cn(
+        "pointer-events-none absolute inset-x-1 z-[60] rounded-md border-2 border-dashed",
+        isAfterHours
+          ? "border-after-hours bg-after-hours/15 ring-2 ring-after-hours/30"
+          : "border-primary bg-primary/10",
+      )}
       style={{
         top: minuteToTop(startMinute),
         height: Math.max(24, durationMinutes * PX_PER_MIN - 2),
       }}
     >
-      <div className="px-2 py-0.5 text-[10px] font-semibold tabular-nums text-primary">
-        {String(Math.floor(startMinute / 60)).padStart(2, "0")}:
-        {String(startMinute % 60).padStart(2, "0")}
+      <div
+        className={cn(
+          "flex items-center justify-between gap-1 px-2 py-0.5 text-[10px] font-semibold tabular-nums",
+          isAfterHours ? "text-after-hours" : "text-primary",
+        )}
+      >
+        <span>{fmt(startMinute)}</span>
+        {isAfterHours && (
+          <span className="inline-flex items-center gap-0.5 rounded-sm bg-after-hours/20 px-1 py-px text-[9px] uppercase tracking-wide">
+            <AlertTriangle className="h-2.5 w-2.5" />
+            <span>após 18h</span>
+          </span>
+        )}
       </div>
+      {isAfterHours && (
+        <div className="px-2 text-[9.5px] font-medium text-after-hours/90">
+          {warningLabel}
+        </div>
+      )}
     </div>
   );
   return <PortalInto host={col}>{node}</PortalInto>;
