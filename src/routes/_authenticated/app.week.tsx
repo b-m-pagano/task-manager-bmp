@@ -182,7 +182,7 @@ function WeekPage() {
           };
         });
 
-      let stack = DAY_START_HOUR * 60;
+      let stack = WORK_START_HOUR * 60;
       const targetTasks: ReflowTask[] = targetTasksRaw.map((t) => {
         const start =
           t.id === taskId
@@ -195,7 +195,7 @@ function WeekPage() {
       });
 
       const { changes } = reflowDay(targetTasks, targetEvents, taskId, drop.startMinute, {
-        dayStart: DAY_START_HOUR * 60,
+        dayStart: WORK_START_HOUR * 60,
         buffer: 0,
       });
 
@@ -262,14 +262,14 @@ function WeekPage() {
           };
         });
       if (dayEvents.length === 0) continue;
-      let stack = DAY_START_HOUR * 60;
+      let stack = WORK_START_HOUR * 60;
       const rTasks: ReflowTask[] = dayTasks.map((t) => {
         const start = t.scheduled_start ? tsToMinute(t.scheduled_start, stack) : stack;
         if (!t.scheduled_start) stack = start + t.estimated_minutes;
         return { id: t.id, start, duration: t.estimated_minutes };
       });
       const { changes } = reflowConflicts(rTasks, dayEvents, {
-        dayStart: DAY_START_HOUR * 60,
+        dayStart: WORK_START_HOUR * 60,
         buffer: 0,
       });
       for (const [id, startMinute] of Object.entries(changes)) {
@@ -317,7 +317,7 @@ function WeekPage() {
       }));
 
       const { placements, changes } = autoScheduleDay(autoTasks, dayEvents, {
-        dayStart: DAY_START_HOUR * 60,
+        dayStart: WORK_START_HOUR * 60,
         afterHoursMinute: 18 * 60,
         buffer: 0,
       });
@@ -405,7 +405,7 @@ function WeekPage() {
     if (!scrollRef.current) return;
     const now = new Date();
     const minutes = now.getHours() * 60 + now.getMinutes();
-    const target = Math.max(0, (minutes - DAY_START_HOUR * 60 - 60) * (PX_PER_HOUR / 60));
+    const target = Math.max(0, (minutes - WORK_START_HOUR * 60 - 60) * (PX_PER_HOUR / 60));
     scrollRef.current.scrollTop = target;
   }, []);
 
@@ -566,7 +566,7 @@ function WeekPage() {
                   (e: any) => (e.starts_at ?? "").slice(0, 10) === iso,
                 );
 
-                let stack = DAY_START_HOUR * 60; // for tasks without a time
+                let stack = WORK_START_HOUR * 60; // for tasks without a time
                 return (
                   <DayColumnGrid
                     key={iso}
