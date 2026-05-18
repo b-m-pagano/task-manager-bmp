@@ -2,7 +2,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { EventCard } from "./event-card";
-import { PX_PER_MIN, minuteToTop } from "./time-grid";
+import { DAY_START_HOUR, PX_PER_MIN, minuteToTop } from "./time-grid";
 import type { MockCategory, MockEvent, MockProject } from "@/lib/mock/week-mock";
 
 const SNAP_MIN = 15;
@@ -70,7 +70,7 @@ export function DraggableTask({
     setGhost({ dx, dy });
     const hit = resolveColumn(e.clientX, e.clientY);
     if (hit) {
-      const rawMin = hit.offsetY / PX_PER_MIN + 8 * 60; // grid starts at 08:00
+      const rawMin = hit.offsetY / PX_PER_MIN + DAY_START_HOUR * 60;
       const snapped = Math.round(rawMin / SNAP_MIN) * SNAP_MIN;
       previewRef.current = { day: hit.day, startMinute: snapped };
     } else {
