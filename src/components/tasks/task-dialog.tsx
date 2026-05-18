@@ -42,6 +42,8 @@ import {
 } from "@/lib/tasks.functions";
 import { getLocalTzOffsetMinutes } from "@/lib/timezone";
 import { SubtaskList } from "./subtask-list";
+import { EntityPicker } from "./entity-picker";
+import { ChevronDown } from "lucide-react";
 
 type Priority = "low" | "medium" | "high" | "urgent";
 type Status = "pending" | "in_progress" | "done" | "skipped";
@@ -275,41 +277,71 @@ export function TaskDialog({
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               <div className="grid gap-1">
                 <Label>Categoria</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sem categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem categoria</SelectItem>
-                    {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        <span className="flex items-center gap-2">
-                          <span
-                            className="h-2.5 w-2.5 rounded-sm"
-                            style={{ backgroundColor: c.color }}
-                          />
-                          {c.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntityPicker
+                  kind="category"
+                  value={categoryId === "none" ? null : categoryId}
+                  onChange={(id) => setCategoryId(id ?? "none")}
+                  options={categories}
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 w-full justify-between font-normal"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        {(() => {
+                          const c = categories.find((x) => x.id === categoryId);
+                          return c ? (
+                            <>
+                              <span
+                                className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                                style={{ backgroundColor: c.color }}
+                              />
+                              <span className="truncate">{c.name}</span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">Sem categoria</span>
+                          );
+                        })()}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                    </Button>
+                  }
+                />
               </div>
               <div className="grid gap-1">
                 <Label>Projeto</Label>
-                <Select value={projectId} onValueChange={setProjectId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sem projeto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem projeto</SelectItem>
-                    {projects.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntityPicker
+                  kind="project"
+                  value={projectId === "none" ? null : projectId}
+                  onChange={(id) => setProjectId(id ?? "none")}
+                  options={projects}
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 w-full justify-between font-normal"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        {(() => {
+                          const p = projects.find((x) => x.id === projectId);
+                          return p ? (
+                            <>
+                              <span
+                                className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                                style={{ backgroundColor: p.color }}
+                              />
+                              <span className="truncate">{p.name}</span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">Sem projeto</span>
+                          );
+                        })()}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                    </Button>
+                  }
+                />
               </div>
               <div className="grid gap-1">
                 <Label htmlFor="t-dur">Duração (min)</Label>
