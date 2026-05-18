@@ -114,6 +114,14 @@ function WeekPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["week"] }),
   });
 
+  const updateFn = useServerFn(updateTask);
+  const toggleStatusMut = useMutation({
+    mutationFn: (v: { id: string; status: "pending" | "done" }) =>
+      updateFn({ data: { id: v.id, status: v.status } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["week"] }),
+    onError: () => toast.error("Não foi possível atualizar status"),
+  });
+
   const categories = (data?.categories ?? []) as { id: string; name: string; color: string }[];
   const projects = (data?.projects ?? []) as { id: string; name: string; color: string }[];
   const categoryById = useMemo(
