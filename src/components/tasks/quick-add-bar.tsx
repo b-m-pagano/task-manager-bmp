@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { quickAddParse } from "@/lib/quick-add.functions";
 import { createTask } from "@/lib/tasks.functions";
+import { getLocalTzOffsetMinutes } from "@/lib/timezone";
 
 interface QuickAddBarProps {
   todayISO: string;
