@@ -70,7 +70,7 @@ export function DraggableTask({
     setGhost({ dx, dy });
     const hit = resolveColumn(e.clientX, e.clientY);
     if (hit) {
-      const rawMin = hit.offsetY / PX_PER_MIN + 8 * 60; // grid starts at 08:00
+      const rawMin = hit.offsetY / PX_PER_MIN + DAY_START_HOUR * 60;
       const snapped = Math.round(rawMin / SNAP_MIN) * SNAP_MIN;
       previewRef.current = { day: hit.day, startMinute: snapped };
     } else {
