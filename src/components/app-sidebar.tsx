@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import logoFilaFoco from "@/assets/logo-filafoco.png";
 import {
   LayoutDashboard,
   Calendar,
