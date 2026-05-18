@@ -324,6 +324,7 @@ const RescheduleSchema = z.object({
     )
     .min(1)
     .max(100),
+  tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
 });
 
 /**
@@ -341,7 +342,7 @@ export const rescheduleTasks = createServerFn({ method: "POST" })
           .from("tasks")
           .update({
             scheduled_day: u.scheduled_day,
-            scheduled_start: startTsFromMinute(u.scheduled_day, u.start_minute),
+            scheduled_start: startTsFromMinute(u.scheduled_day, u.start_minute, data.tz_offset_minutes),
           })
           .eq("id", u.id)
           .eq("user_id", userId),
