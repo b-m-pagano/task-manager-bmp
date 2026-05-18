@@ -333,6 +333,7 @@ function TodayPage() {
               toggleStatusMut.isPending && toggleStatusMut.variables?.id === t.id;
             const isDone = t.status === "done";
             const cat = t.category_id ? categoryById[t.category_id] : null;
+            const proj = t.project_id ? projectById[t.project_id] : null;
             const startMin = t.scheduled_start ? tsToMinute(t.scheduled_start) : null;
             const isDragging = dragId === t.id;
             const isOver = overId === t.id && dragId && dragId !== t.id;
