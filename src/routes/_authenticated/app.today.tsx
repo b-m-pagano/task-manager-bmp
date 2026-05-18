@@ -187,6 +187,43 @@ function TodayPage() {
     },
   });
 
+  const assignMut = useMutation({
+    mutationFn: (v: {
+      id: string;
+      field: "category_id" | "project_id";
+      value: string | null;
+    }) =>
+      updateFn({
+        data: {
+          id: v.id,
+          [v.field]: v.value,
+        } as any,
+      }),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey });
+      const prev = qc.getQueryData<any>(queryKey);
+      qc.setQueryData(queryKey, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          tasks: old.tasks.map((t: Task) =>
+            t.id === v.id ? { ...t, [v.field]: v.value } : t,
+          ),
+        };
+      });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev);
+      toast.error("Não foi possível atualizar");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey });
+      qc.invalidateQueries({ queryKey: ["week"] });
+    },
+  });
+
+
   const reorderMut = useMutation({
     mutationFn: (updates: { id: string; start_minute: number }[]) =>
       rescheduleFn({
