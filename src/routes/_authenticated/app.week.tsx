@@ -14,7 +14,6 @@ import {
   GRID_HEIGHT,
   HourGutter,
   PX_PER_HOUR,
-  DAY_START_HOUR,
   WORK_START_HOUR,
 } from "@/components/week-calendar/time-grid";
 import { EventCard } from "@/components/week-calendar/event-card";
