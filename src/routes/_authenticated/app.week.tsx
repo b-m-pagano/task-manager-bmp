@@ -118,8 +118,25 @@ function WeekPage() {
   const toggleStatusMut = useMutation({
     mutationFn: (v: { id: string; status: "pending" | "done" }) =>
       updateFn({ data: { id: v.id, status: v.status } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["week"] }),
-    onError: () => toast.error("Não foi possível atualizar status"),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ["week", daysISO[0]] });
+      const prev = qc.getQueryData<any>(["week", daysISO[0]]);
+      qc.setQueryData(["week", daysISO[0]], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          tasks: old.tasks.map((t: RawTask) =>
+            t.id === v.id ? { ...t, status: v.status } : t,
+          ),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["week", daysISO[0]], ctx.prev);
+      toast.error("Não foi possível atualizar status");
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["week", daysISO[0]] }),
   });
 
   const categories = (data?.categories ?? []) as { id: string; name: string; color: string }[];
@@ -659,6 +676,9 @@ function WeekPage() {
                               id: t.id,
                               status: t.status === "done" ? "pending" : "done",
                             })
+                          }
+                          isTogglingStatus={
+                            toggleStatusMut.isPending && toggleStatusMut.variables?.id === t.id
                           }
                         />
                       );

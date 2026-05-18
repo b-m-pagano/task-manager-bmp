@@ -27,6 +27,8 @@ interface Props {
   onDrop: (d: DragDrop) => void;
   /** Toggle the task's done/pending status from the status icon. */
   onToggleStatus?: () => void;
+  /** True while the status mutation is in-flight (shows spinner). */
+  isTogglingStatus?: boolean;
   /** Map of day iso → column element, used to resolve cross-column drops. */
   columnRefs: React.MutableRefObject<Record<string, HTMLElement | null>>;
 }
@@ -38,6 +40,7 @@ export function DraggableTask({
   onClick,
   onDrop,
   onToggleStatus,
+  isTogglingStatus,
   columnRefs,
 }: Props) {
   const [dragging, setDragging] = React.useState(false);
@@ -133,7 +136,7 @@ export function DraggableTask({
         )}
         style={wrapperStyle}
       >
-        <EventCard event={event} category={category} project={project} onToggleStatus={onToggleStatus} />
+        <EventCard event={event} category={category} project={project} onToggleStatus={onToggleStatus} isTogglingStatus={isTogglingStatus} />
       </div>
     </>
   );

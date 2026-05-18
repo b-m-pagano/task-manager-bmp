@@ -2,13 +2,14 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { minuteToTop, PX_PER_MIN } from "./time-grid";
 import type { MockCategory, MockEvent, MockProject } from "@/lib/mock/week-mock";
-import { AlertTriangle, CheckCircle2, Circle, CircleDot, Flag } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Circle, CircleDot, Flag, Loader2 } from "lucide-react";
 
 interface EventCardProps {
   event: MockEvent;
   category?: MockCategory;
   project?: MockProject;
   onToggleStatus?: () => void;
+  isTogglingStatus?: boolean;
 }
 
 const priorityRing: Record<MockEvent["priority"], string> = {
@@ -37,7 +38,7 @@ function fmt(minute: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export function EventCard({ event, category, project, onToggleStatus }: EventCardProps) {
+export function EventCard({ event, category, project, onToggleStatus, isTogglingStatus }: EventCardProps) {
   const top = minuteToTop(event.startMinute);
   const height = Math.max(28, event.durationMinutes * PX_PER_MIN - 2);
   const compact = height < 44;
@@ -95,11 +96,19 @@ export function EventCard({ event, category, project, onToggleStatus }: EventCar
                 e.stopPropagation();
                 onToggleStatus();
               }}
-              className="mt-px shrink-0 rounded-full transition-transform hover:scale-110"
+              disabled={isTogglingStatus}
+              className={cn(
+                "mt-px shrink-0 rounded-full transition-transform hover:scale-110",
+                isTogglingStatus && "pointer-events-none animate-pulse opacity-60",
+              )}
               aria-label={isDone ? "Marcar como pendente" : "Marcar como concluída"}
               title={isDone ? "Marcar como pendente" : "Concluir"}
             >
-              {statusIcon[event.status]}
+              {isTogglingStatus ? (
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+              ) : (
+                statusIcon[event.status]
+              )}
             </button>
           ) : (
             <span className="mt-px shrink-0">{statusIcon[event.status]}</span>
