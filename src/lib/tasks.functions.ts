@@ -22,6 +22,7 @@ export const listWeekData = createServerFn({ method: "POST" })
       supabase
         .from("tasks")
         .select("*")
+        .eq("is_inbox", false)
         .gte("scheduled_day", first)
         .lte("scheduled_day", last)
         .order("queue_position", { ascending: true }),
@@ -68,6 +69,7 @@ export const listMonthData = createServerFn({ method: "POST" })
       supabase
         .from("tasks")
         .select("id,scheduled_day,category_id,status")
+        .eq("is_inbox", false)
         .gte("scheduled_day", data.from)
         .lte("scheduled_day", data.to),
       supabase
@@ -103,6 +105,7 @@ const CreateTaskSchema = z.object({
   project_id: z.string().uuid().nullable().optional(),
   parent_id: z.string().uuid().nullable().optional(),
   due_date: z.string().regex(ISO_DATE).nullable().optional(),
+  inbox: z.boolean().optional(),
 });
 
 export const createTask = createServerFn({ method: "POST" })
