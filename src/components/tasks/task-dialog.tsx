@@ -434,6 +434,16 @@ export function TaskDialog({
                     <Copy className="mr-1.5 h-3.5 w-3.5" />
                     Duplicar
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => moveInboxMut.mutate()}
+                    disabled={moveInboxMut.isPending}
+                    title="Remove a data e devolve à Inbox"
+                  >
+                    <Inbox className="mr-1.5 h-3.5 w-3.5" />
+                    Mover para Inbox
+                  </Button>
                 </>
               )}
             </div>
