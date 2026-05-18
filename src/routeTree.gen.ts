@@ -24,6 +24,7 @@ import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppFocusRouteImport } from './routes/_authenticated/app.focus'
 import { Route as AuthenticatedAppCategoriesRouteImport } from './routes/_authenticated/app.categories'
 import { Route as ApiPublicGoogleCallbackRouteImport } from './routes/api/public/google.callback'
+import { Route as ApiPublicDebugOauthRouteImport } from './routes/api/public/debug.oauth'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -102,6 +103,11 @@ const ApiPublicGoogleCallbackRoute = ApiPublicGoogleCallbackRouteImport.update({
   path: '/api/public/google/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDebugOauthRoute = ApiPublicDebugOauthRouteImport.update({
+  id: '/api/public/debug/oauth',
+  path: '/api/public/debug/oauth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/app/today': typeof AuthenticatedAppTodayRoute
   '/app/week': typeof AuthenticatedAppWeekRoute
   '/app/': typeof AuthenticatedAppIndexRoute
+  '/api/public/debug/oauth': typeof ApiPublicDebugOauthRoute
   '/api/public/google/callback': typeof ApiPublicGoogleCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/app/today': typeof AuthenticatedAppTodayRoute
   '/app/week': typeof AuthenticatedAppWeekRoute
   '/app': typeof AuthenticatedAppIndexRoute
+  '/api/public/debug/oauth': typeof ApiPublicDebugOauthRoute
   '/api/public/google/callback': typeof ApiPublicGoogleCallbackRoute
 }
 export interface FileRoutesById {
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/_authenticated/app/today': typeof AuthenticatedAppTodayRoute
   '/_authenticated/app/week': typeof AuthenticatedAppWeekRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
+  '/api/public/debug/oauth': typeof ApiPublicDebugOauthRoute
   '/api/public/google/callback': typeof ApiPublicGoogleCallbackRoute
 }
 export interface FileRouteTypes {
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/app/today'
     | '/app/week'
     | '/app/'
+    | '/api/public/debug/oauth'
     | '/api/public/google/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/app/today'
     | '/app/week'
     | '/app'
+    | '/api/public/debug/oauth'
     | '/api/public/google/callback'
   id:
     | '__root__'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/today'
     | '/_authenticated/app/week'
     | '/_authenticated/app/'
+    | '/api/public/debug/oauth'
     | '/api/public/google/callback'
   fileRoutesById: FileRoutesById
 }
@@ -210,6 +222,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicDebugOauthRoute: typeof ApiPublicDebugOauthRoute
   ApiPublicGoogleCallbackRoute: typeof ApiPublicGoogleCallbackRoute
 }
 
@@ -320,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGoogleCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/debug/oauth': {
+      id: '/api/public/debug/oauth'
+      path: '/api/public/debug/oauth'
+      fullPath: '/api/public/debug/oauth'
+      preLoaderRoute: typeof ApiPublicDebugOauthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -358,6 +378,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicDebugOauthRoute: ApiPublicDebugOauthRoute,
   ApiPublicGoogleCallbackRoute: ApiPublicGoogleCallbackRoute,
 }
 export const routeTree = rootRouteImport
