@@ -144,11 +144,15 @@ function TodayPage() {
       });
   }, [data, today]);
 
-  const categories = (data?.categories ?? []) as { id: string; name: string; color: string }[];
-  const projects = (data?.projects ?? []) as { id: string; name: string; color: string }[];
+  const categories = (data?.categories ?? []) as Entity[];
+  const projects = (data?.projects ?? []) as Entity[];
   const categoryById = useMemo(
     () => Object.fromEntries(categories.map((c) => [c.id, c])),
     [categories],
+  );
+  const projectById = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p])),
+    [projects],
   );
 
   const [dialogOpen, setDialogOpen] = useState(false);
