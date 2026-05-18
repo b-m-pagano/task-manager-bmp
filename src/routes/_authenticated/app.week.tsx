@@ -677,6 +677,9 @@ function WeekPage() {
                               status: t.status === "done" ? "pending" : "done",
                             })
                           }
+                          isTogglingStatus={
+                            toggleStatusMut.isPending && toggleStatusMut.variables?.id === t.id
+                          }
                         />
                       );
                     })}
