@@ -8,6 +8,7 @@ interface EventCardProps {
   event: MockEvent;
   category?: MockCategory;
   project?: MockProject;
+  onToggleStatus?: () => void;
 }
 
 const priorityRing: Record<MockEvent["priority"], string> = {
@@ -36,7 +37,7 @@ function fmt(minute: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export function EventCard({ event, category, project }: EventCardProps) {
+export function EventCard({ event, category, project, onToggleStatus }: EventCardProps) {
   const top = minuteToTop(event.startMinute);
   const height = Math.max(28, event.durationMinutes * PX_PER_MIN - 2);
   const compact = height < 44;
@@ -86,7 +87,23 @@ export function EventCard({ event, category, project }: EventCardProps) {
       <div className="absolute left-0 top-0 h-full w-[3px]" style={{ backgroundColor: tint }} />
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 px-2 py-1 pl-2.5">
         <div className="flex items-start gap-1">
-          <span className="mt-px shrink-0">{statusIcon[event.status]}</span>
+          {onToggleStatus ? (
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleStatus();
+              }}
+              className="mt-px shrink-0 rounded-full transition-transform hover:scale-110"
+              aria-label={isDone ? "Marcar como pendente" : "Marcar como concluída"}
+              title={isDone ? "Marcar como pendente" : "Concluir"}
+            >
+              {statusIcon[event.status]}
+            </button>
+          ) : (
+            <span className="mt-px shrink-0">{statusIcon[event.status]}</span>
+          )}
           <p
             className={cn(
               "min-w-0 flex-1 truncate font-medium leading-tight",

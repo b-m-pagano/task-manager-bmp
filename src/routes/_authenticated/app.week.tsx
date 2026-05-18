@@ -25,7 +25,7 @@ import { QuickAddBar } from "@/components/tasks/quick-add-bar";
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { carryUnfinished, listWeekData, rescheduleTasks } from "@/lib/tasks.functions";
+import { carryUnfinished, listWeekData, rescheduleTasks, updateTask } from "@/lib/tasks.functions";
 import { getLocalTzOffsetMinutes } from "@/lib/timezone";
 import { reflowConflicts, reflowDay, type ReflowBlock, type ReflowTask } from "@/lib/queue/reflow";
 import { autoScheduleDay, type AutoTask, type AutoBlock } from "@/lib/queue/auto-schedule";
@@ -112,6 +112,14 @@ function WeekPage() {
       qc.invalidateQueries({ queryKey: ["week"] });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["week"] }),
+  });
+
+  const updateFn = useServerFn(updateTask);
+  const toggleStatusMut = useMutation({
+    mutationFn: (v: { id: string; status: "pending" | "done" }) =>
+      updateFn({ data: { id: v.id, status: v.status } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["week"] }),
+    onError: () => toast.error("Não foi possível atualizar status"),
   });
 
   const categories = (data?.categories ?? []) as { id: string; name: string; color: string }[];
@@ -646,6 +654,12 @@ function WeekPage() {
                           columnRefs={columnRefs}
                           onClick={() => openEditById(t.id)}
                           onDrop={(d) => handleDrop(t.id, d)}
+                          onToggleStatus={() =>
+                            toggleStatusMut.mutate({
+                              id: t.id,
+                              status: t.status === "done" ? "pending" : "done",
+                            })
+                          }
                         />
                       );
                     })}
