@@ -1,55 +1,60 @@
-# Bug de fuso horário ao agendar horário de início
+## Objetivo
 
-## Diagnóstico
+Permitir, direto nos cards da visão **Hoje**, trocar a categoria e o projeto de uma tarefa — e também criar uma nova categoria ou projeto na hora, sem abrir o diálogo de edição.
 
-Em `src/lib/tasks.functions.ts`, a função `startTsFromMinute` monta a timestamp assim:
+## UX nos cards (visão Hoje)
 
-```ts
-return `${day}T${h}:${m}:00`;   // ex: "2026-05-18T08:00:00"
+Cada card ganha dois "chips" clicáveis ao lado do título:
+
+- Chip de **categoria** (bolinha colorida + nome, ou "Categoria" se vazio)
+- Chip de **projeto** (ícone + nome, ou "Projeto" se vazio)
+
+Clicar em um chip abre um **Popover** com:
+
+1. Campo de busca no topo
+2. Opção "Sem categoria" / "Sem projeto" para limpar
+3. Lista das categorias/projetos existentes (clique troca imediatamente)
+4. Separador
+5. Botão **"+ Nova categoria"** / **"+ Novo projeto"** que expande um mini-form inline com:
+   - Input de **nome** (obrigatório, max 80)
+   - Seletor de **cor** (paleta de 8 cores pré-definidas em swatches clicáveis)
+   - Botões **Criar** / **Cancelar**
+6. Ao criar, a nova entidade é selecionada automaticamente na tarefa
+
+Feedback: atualização otimista no card (chip muda imediato) + spinner discreto + rollback em erro + toast.
+
+## Trabalho técnico
+
+```text
+src/lib/projects.functions.ts            [NOVO]
+  - listProjects / upsertProject / deleteProject
+  - mesma forma de categories.functions.ts
+
+src/components/tasks/category-picker.tsx [NOVO]
+  - Popover com busca, lista, "+ Nova" + mini-form (nome + cor)
+  - Props: value, onChange(id|null), categories, trigger
+  - Internamente: useMutation(upsertCategory) + invalidate ["categories"]
+
+src/components/tasks/project-picker.tsx  [NOVO]
+  - Mesmo padrão, para projetos
+
+src/routes/_authenticated/app.today.tsx  [EDIT]
+  - Carregar categories + projects (useQuery)
+  - Substituir o badge estático de categoria por <CategoryPicker>
+  - Adicionar <ProjectPicker> ao lado
+  - Mutação updateTask otimista para troca (já existe pattern de toggle)
 ```
 
-A string **não tem offset de timezone**. A coluna `scheduled_start` é `timestamptz`, então o Postgres interpreta valores sem offset como **UTC**. Você está em **BRT (UTC-3)**, então:
+## Detalhes
 
-- Você cria às `08:00` → grava `2026-05-18T08:00:00Z` (UTC)
-- A interface lê de volta e converte para o fuso local → exibe `05:00` BRT
+- **Paleta de cores fixa** para criação rápida: 8 swatches (indigo, emerald, amber, rose, sky, violet, orange, slate) — cobre os casos comuns sem color picker complexo.
+- Os pickers só aparecem na visão **Hoje** nesta entrega. Semana e Inbox seguem como estão.
+- Reuso: o componente `CategoryPicker`/`ProjectPicker` é desenhado para ser reaproveitado depois em Semana/Inbox se você quiser estender.
+- O TaskDialog continua funcionando normalmente (categoria/projeto pelos Selects existentes).
+- Sem mudanças de schema: tabelas `categories` e `projects` já existem com RLS por usuário.
 
-Daí a diferença de 3 horas que você viu.
+## Fora de escopo
 
-O mesmo bug afeta: criação de tarefas, edição de horário, agendar-da-Inbox e reordenação em lote (`moveTasksToDay`).
-
-## Correção
-
-A timezone do usuário só é confiável no **cliente** (`Intl.DateTimeFormat().resolvedOptions().timeZone` / `getTimezoneOffset()`). O servidor TanStack roda em UTC. Vou enviar o offset do cliente junto com o payload.
-
-### 1. Helper compartilhado
-
-Criar `src/lib/timezone.ts` com:
-
-- `getLocalTzOffsetMinutes()` — retorna o offset atual do navegador (ex: `180` para BRT).
-- `formatOffset(min)` — converte para o sufixo ISO (`"-03:00"`).
-
-### 2. Servidor (`src/lib/tasks.functions.ts`)
-
-- Adicionar `tz_offset_minutes: z.number().int().min(-840).max(840).optional()` aos schemas: `CreateTaskSchema`, `UpdateTaskSchema`, `MoveTasksToDaySchema`, `ScheduleFromInboxSchema`.
-- Alterar `startTsFromMinute(day, minute, tzOffsetMinutes?)` para anexar o sufixo de offset quando fornecido. Sem offset, manter o comportamento atual (compatibilidade).
-- Propagar `tz_offset_minutes` em todos os locais que chamam `startTsFromMinute` dentro do arquivo.
-
-### 3. Cliente — passar o offset em todas as chamadas
-
-Em cada call site, ler `getLocalTzOffsetMinutes()` e incluir no `data`:
-
-- `src/components/tasks/quick-add-bar.tsx` (createTask)
-- `src/components/tasks/task-dialog.tsx` (createTask + updateTask)
-- `src/components/tasks/subtask-list.tsx` (createTask)
-- `src/routes/_authenticated/app.inbox.tsx` (createTask, scheduleFromInbox)
-- `src/routes/_authenticated/app.focus.tsx` (updateTask)
-- `src/routes/_authenticated/app.week.tsx` e componentes de drag-and-drop que chamam `updateTask` / `moveTasksToDay` (a verificar nos handlers de drop).
-
-### 4. Sem migração de dados
-
-Tarefas já gravadas com offset errado **não** serão re-corrigidas automaticamente (o servidor não sabe em qual fuso foram criadas). Se quiser, posso adicionar uma migração one-shot que assume BRT para tarefas existentes — me avise.
-
-## Escopo
-
-Apenas correção do bug de fuso. Sem mudanças visuais, sem alterar a UX de agendamento.
-
+- Editar/excluir categoria ou projeto a partir do card (continua em telas dedicadas)
+- Reordenação de categorias/projetos
+- Aplicar o picker em Semana e Inbox
