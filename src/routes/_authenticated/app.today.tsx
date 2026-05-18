@@ -408,35 +408,81 @@ function TodayPage() {
                   )}
                 </button>
 
-                <button
-                  onClick={() => openEdit(t)}
-                  className="min-w-0 flex-1 text-left"
-                  title="Editar"
-                >
-                  <p
-                    className={cn(
-                      "truncate text-sm font-medium",
-                      isDone ? "text-muted-foreground line-through" : "text-foreground",
-                    )}
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <button
+                    onClick={() => openEdit(t)}
+                    className="min-w-0 text-left"
+                    title="Editar"
                   >
-                    {t.title}
-                  </p>
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    {startMin != null && startMin < Number.MAX_SAFE_INTEGER && (
-                      <>
-                        <span className="tabular-nums">{fmtMin(startMin)}</span>
-                        <span>·</span>
-                      </>
-                    )}
-                    <span>{t.estimated_minutes}m</span>
-                    {cat && (
-                      <>
-                        <span>·</span>
-                        <span style={{ color: cat.color }}>{cat.name}</span>
-                      </>
-                    )}
+                    <p
+                      className={cn(
+                        "truncate text-sm font-medium",
+                        isDone ? "text-muted-foreground line-through" : "text-foreground",
+                      )}
+                    >
+                      {t.title}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      {startMin != null && startMin < Number.MAX_SAFE_INTEGER && (
+                        <>
+                          <span className="tabular-nums">{fmtMin(startMin)}</span>
+                          <span>·</span>
+                        </>
+                      )}
+                      <span>{t.estimated_minutes}m</span>
+                    </div>
+                  </button>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <EntityPicker
+                      kind="category"
+                      value={t.category_id}
+                      onChange={(id) =>
+                        assignMut.mutate({ id: t.id, field: "category_id", value: id })
+                      }
+                      options={categories}
+                      trigger={
+                        <button
+                          type="button"
+                          onClick={(e) => e.stopPropagation()}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-medium transition-colors hover:border-primary/50 hover:bg-muted",
+                            !cat && "text-muted-foreground/70",
+                          )}
+                        >
+                          <span
+                            className="h-2 w-2 rounded-sm"
+                            style={{ backgroundColor: cat?.color ?? "transparent", border: cat ? "none" : "1px dashed currentColor" }}
+                          />
+                          {cat ? cat.name : "Categoria"}
+                        </button>
+                      }
+                    />
+                    <EntityPicker
+                      kind="project"
+                      value={t.project_id}
+                      onChange={(id) =>
+                        assignMut.mutate({ id: t.id, field: "project_id", value: id })
+                      }
+                      options={projects}
+                      trigger={
+                        <button
+                          type="button"
+                          onClick={(e) => e.stopPropagation()}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-medium transition-colors hover:border-primary/50 hover:bg-muted",
+                            !proj && "text-muted-foreground/70",
+                          )}
+                        >
+                          <span
+                            className="h-2 w-2 rounded-sm"
+                            style={{ backgroundColor: proj?.color ?? "transparent", border: proj ? "none" : "1px dashed currentColor" }}
+                          />
+                          {proj ? proj.name : "Projeto"}
+                        </button>
+                      }
+                    />
                   </div>
-                </button>
+                </div>
 
                 <span
                   className={cn(
