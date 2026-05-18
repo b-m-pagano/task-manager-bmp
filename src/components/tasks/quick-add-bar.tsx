@@ -31,11 +31,15 @@ export function QuickAddBar({ todayISO, onCreated }: QuickAddBarProps) {
           scheduled_day: parsed.scheduled_day,
           priority: parsed.priority,
           due_date: parsed.due_date,
+          inbox: parsed.inbox ?? false,
         },
       });
       setText("");
-      toast.success("Tarefa criada", { description: parsed.title });
+      toast.success(parsed.inbox ? "Adicionada à Inbox" : "Tarefa criada", {
+        description: parsed.title,
+      });
       qc.invalidateQueries({ queryKey: ["week"] });
+      qc.invalidateQueries({ queryKey: ["inbox"] });
       onCreated?.();
     } catch (err) {
       toast.error("Quick Add falhou", {
@@ -58,7 +62,7 @@ export function QuickAddBar({ todayISO, onCreated }: QuickAddBarProps) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         disabled={busy}
-        placeholder='Quick add — ex: "Call cliente amanhã 14h 1h"  (atalho: /)'
+        placeholder='Quick add — ex: "Call cliente amanhã 14h 1h"  ·  use #inbox para sem data'
         className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm shadow-sm placeholder:text-muted-foreground/70 transition-[border-color,box-shadow] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
       />
     </form>
