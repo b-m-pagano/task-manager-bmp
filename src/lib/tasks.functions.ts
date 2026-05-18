@@ -132,13 +132,16 @@ export const createTask = createServerFn({ method: "POST" })
         estimated_minutes: data.estimated_minutes,
         priority: data.priority,
         scheduled_day: data.scheduled_day,
-        scheduled_start: startTsFromMinute(data.scheduled_day, data.start_minute),
+        scheduled_start: data.inbox
+          ? null
+          : startTsFromMinute(data.scheduled_day, data.start_minute),
         queue_position: nextPos,
         category_id: data.category_id ?? null,
         project_id: data.project_id ?? null,
         parent_id: data.parent_id ?? null,
         due_date: data.due_date ?? null,
-      })
+        is_inbox: data.inbox ?? false,
+      } as never)
       .select()
       .single();
     if (error) throw error;
