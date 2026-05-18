@@ -3,11 +3,23 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { format } from "date-fns";
-import { CheckCircle2, Circle, CircleDot, Loader2, Sun } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  CircleDot,
+  GripVertical,
+  Loader2,
+  Sun,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
-import { listWeekData, updateTask } from "@/lib/tasks.functions";
+import {
+  listWeekData,
+  rescheduleTasks,
+  updateTask,
+} from "@/lib/tasks.functions";
+import { getLocalTzOffsetMinutes } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/app/today")({
@@ -31,6 +43,11 @@ type Task = {
   parent_id: string | null;
 };
 
+type Block = { start: number; end: number };
+
+const WORK_START_MIN = 8 * 60;
+const AFTER_HOURS_MIN = 18 * 60;
+
 function isoDay(d: Date) {
   return format(d, "yyyy-MM-dd");
 }
@@ -43,6 +60,38 @@ function fmtMin(min: number) {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/**
+ * Pack tasks sequentially in given order starting at WORK_START_MIN,
+ * skipping over calendar-event blockers. Completed tasks keep their start
+ * (or stack at the cursor if they have none) but never push others.
+ */
+function packSequential(
+  ordered: Task[],
+  blockers: Block[],
+): { id: string; start: number }[] {
+  const sorted = [...blockers].sort((a, b) => a.start - b.start);
+  let cursor = WORK_START_MIN;
+  const out: { id: string; start: number }[] = [];
+
+  const advancePastBlockers = (start: number, duration: number) => {
+    let s = start;
+    for (const b of sorted) {
+      if (s + duration <= b.start) break;
+      if (s < b.end && s + duration > b.start) {
+        s = b.end;
+      }
+    }
+    return s;
+  };
+
+  for (const t of ordered) {
+    const start = advancePastBlockers(cursor, t.estimated_minutes);
+    out.push({ id: t.id, start });
+    cursor = start + t.estimated_minutes;
+  }
+  return out;
 }
 
 const priorityChip: Record<Task["priority"], string> = {
@@ -65,6 +114,7 @@ function TodayPage() {
 
   const listFn = useServerFn(listWeekData);
   const updateFn = useServerFn(updateTask);
+  const rescheduleFn = useServerFn(rescheduleTasks);
 
   const { data, isLoading } = useQuery({
     queryKey,
@@ -80,6 +130,19 @@ function TodayPage() {
     );
   }, [data, today]);
 
+  const blockers = useMemo<Block[]>(() => {
+    return ((data?.events ?? []) as any[])
+      .filter((e) => (e.starts_at ?? "").slice(0, 10) === today)
+      .map((e) => {
+        const s = new Date(e.starts_at);
+        const en = new Date(e.ends_at);
+        return {
+          start: s.getHours() * 60 + s.getMinutes(),
+          end: en.getHours() * 60 + en.getMinutes(),
+        };
+      });
+  }, [data, today]);
+
   const categories = (data?.categories ?? []) as { id: string; name: string; color: string }[];
   const projects = (data?.projects ?? []) as { id: string; name: string; color: string }[];
   const categoryById = useMemo(
@@ -89,6 +152,8 @@ function TodayPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TaskDialogTask | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
 
   const toggleStatusMut = useMutation({
     mutationFn: (v: { id: string; status: "pending" | "done" }) =>
@@ -116,6 +181,76 @@ function TodayPage() {
       qc.invalidateQueries({ queryKey: ["week"] });
     },
   });
+
+  const reorderMut = useMutation({
+    mutationFn: (updates: { id: string; start_minute: number }[]) =>
+      rescheduleFn({
+        data: {
+          updates: updates.map((u) => ({
+            id: u.id,
+            scheduled_day: today,
+            start_minute: u.start_minute,
+          })),
+          tz_offset_minutes: getLocalTzOffsetMinutes(),
+        },
+      }),
+    onError: (_e, _v, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev);
+      toast.error("Não foi possível reordenar");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey });
+      qc.invalidateQueries({ queryKey: ["week"] });
+    },
+  });
+
+  /** Move task `srcId` to immediately before `destId` (or end if null). */
+  const handleReorder = (srcId: string, destId: string | null) => {
+    if (srcId === destId) return;
+    const current = [...tasks];
+    const srcIdx = current.findIndex((t) => t.id === srcId);
+    if (srcIdx < 0) return;
+    const [moved] = current.splice(srcIdx, 1);
+    const destIdx = destId
+      ? current.findIndex((t) => t.id === destId)
+      : current.length;
+    current.splice(destIdx < 0 ? current.length : destIdx, 0, moved);
+
+    const placements = packSequential(current, blockers);
+
+    // Optimistic patch
+    const prev = qc.getQueryData<any>(queryKey);
+    qc.setQueryData(queryKey, (old: any) => {
+      if (!old) return old;
+      const startMap = new Map(placements.map((p) => [p.id, p.start]));
+      return {
+        ...old,
+        tasks: old.tasks.map((t: Task) => {
+          const newStart = startMap.get(t.id);
+          if (newStart == null) return t;
+          const h = String(Math.floor(newStart / 60)).padStart(2, "0");
+          const m = String(newStart % 60).padStart(2, "0");
+          return { ...t, scheduled_start: `${today}T${h}:${m}:00` };
+        }),
+      };
+    });
+
+    reorderMut.mutate(
+      placements.map((p) => ({ id: p.id, start_minute: p.start })),
+      { onError: () => qc.setQueryData(queryKey, prev) } as any,
+    );
+
+    const overflow = placements.find(
+      (p) =>
+        p.start + (current.find((t) => t.id === p.id)?.estimated_minutes ?? 0) >
+        AFTER_HOURS_MIN,
+    );
+    if (overflow) {
+      toast.warning("Fila ultrapassa 18h", {
+        description: "Algumas tarefas ficaram após o horário comercial",
+      });
+    }
+  };
 
   const openEdit = (t: Task) => {
     setEditing(t);
@@ -157,14 +292,52 @@ function TodayPage() {
             const isDone = t.status === "done";
             const cat = t.category_id ? categoryById[t.category_id] : null;
             const startMin = t.scheduled_start ? tsToMinute(t.scheduled_start) : null;
+            const isDragging = dragId === t.id;
+            const isOver = overId === t.id && dragId && dragId !== t.id;
             return (
               <li
                 key={t.id}
+                draggable
+                onDragStart={(e) => {
+                  setDragId(t.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", t.id);
+                }}
+                onDragEnd={() => {
+                  setDragId(null);
+                  setOverId(null);
+                }}
+                onDragOver={(e) => {
+                  if (!dragId || dragId === t.id) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  setOverId(t.id);
+                }}
+                onDragLeave={() => {
+                  if (overId === t.id) setOverId(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const src = e.dataTransfer.getData("text/plain") || dragId;
+                  if (src && src !== t.id) handleReorder(src, t.id);
+                  setDragId(null);
+                  setOverId(null);
+                }}
                 className={cn(
-                  "group flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2 transition-colors hover:border-primary/40",
+                  "group flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 transition-all hover:border-primary/40",
                   isDone && "opacity-60",
+                  isDragging && "opacity-40",
+                  isOver && "border-primary ring-2 ring-primary/30",
                 )}
               >
+                <span
+                  className="cursor-grab text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
+                  title="Arraste para reordenar"
+                  aria-hidden
+                >
+                  <GripVertical className="h-4 w-4" />
+                </span>
+
                 <button
                   type="button"
                   onClick={() =>
@@ -206,10 +379,12 @@ function TodayPage() {
                     {t.title}
                   </p>
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    {startMin != null && (
-                      <span className="tabular-nums">{fmtMin(startMin)}</span>
+                    {startMin != null && startMin < Number.MAX_SAFE_INTEGER && (
+                      <>
+                        <span className="tabular-nums">{fmtMin(startMin)}</span>
+                        <span>·</span>
+                      </>
                     )}
-                    {startMin != null && <span>·</span>}
                     <span>{t.estimated_minutes}m</span>
                     {cat && (
                       <>
@@ -231,6 +406,29 @@ function TodayPage() {
               </li>
             );
           })}
+
+          {/* Drop zone at end of list */}
+          {tasks.length > 0 && dragId && (
+            <li
+              onDragOver={(e) => {
+                e.preventDefault();
+                setOverId("__end__");
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const src = e.dataTransfer.getData("text/plain") || dragId;
+                if (src) handleReorder(src, null);
+                setDragId(null);
+                setOverId(null);
+              }}
+              className={cn(
+                "h-8 rounded-md border-2 border-dashed transition-colors",
+                overId === "__end__"
+                  ? "border-primary bg-primary/5"
+                  : "border-border",
+              )}
+            />
+          )}
         </ul>
       </div>
 
