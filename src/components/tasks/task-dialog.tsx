@@ -341,7 +341,7 @@ export function TaskDialog({
                 </Select>
               </div>
               {isEdit && (
-                <div className="grid gap-1.5">
+                <div className="grid gap-1">
                   <Label>Status</Label>
                   <Select value={status} onValueChange={(v) => setStatus(v as Status)}>
                     <SelectTrigger>
@@ -359,7 +359,7 @@ export function TaskDialog({
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="grid gap-1.5">
+              <div className="grid gap-1">
                 <Label htmlFor="t-day">Dia</Label>
                 <Input
                   id="t-day"
@@ -368,7 +368,7 @@ export function TaskDialog({
                   onChange={(e) => setDay(e.target.value)}
                 />
               </div>
-              <div className="grid gap-1.5">
+              <div className="grid gap-1">
                 <Label htmlFor="t-start">Horário</Label>
                 <Input
                   id="t-start"
@@ -377,7 +377,7 @@ export function TaskDialog({
                   onChange={(e) => setStartTime(e.target.value)}
                 />
               </div>
-              <div className="grid gap-1.5">
+              <div className="grid gap-1">
                 <Label htmlFor="t-due">Prazo</Label>
                 <Input
                   id="t-due"
@@ -389,7 +389,7 @@ export function TaskDialog({
             </div>
 
             {isEdit && task && (
-              <div className="grid gap-2">
+              <div className="grid gap-1.5">
                 <Label>Subtarefas</Label>
                 <SubtaskList
                   parentId={task.id}
@@ -399,20 +399,22 @@ export function TaskDialog({
               </div>
             )}
 
-            <div className="grid gap-1.5">
+            <div className="grid gap-1">
               <Label htmlFor="t-notes">Notas</Label>
               <Textarea
                 id="t-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Pensamentos, lembretes, anotações livres…"
-                rows={3}
+                rows={2}
                 maxLength={10000}
+                className="resize-none"
               />
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+          <DialogFooter className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-between">
+
             <div className="flex gap-2">
               {isEdit && (
                 <>
