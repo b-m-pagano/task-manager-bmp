@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
+import { EntityPicker, type Entity } from "@/components/tasks/entity-picker";
 import {
   listWeekData,
   rescheduleTasks,
