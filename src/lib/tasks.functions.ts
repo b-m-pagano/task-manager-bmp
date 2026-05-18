@@ -152,7 +152,7 @@ export const createTask = createServerFn({ method: "POST" })
         scheduled_day: data.scheduled_day,
         scheduled_start: data.inbox
           ? null
-          : startTsFromMinute(data.scheduled_day, data.start_minute),
+          : startTsFromMinute(data.scheduled_day, data.start_minute, data.tz_offset_minutes),
         queue_position: nextPos,
         category_id: data.category_id ?? null,
         project_id: data.project_id ?? null,
