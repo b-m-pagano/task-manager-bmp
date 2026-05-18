@@ -40,6 +40,7 @@ import {
   duplicateTask,
   sendToInbox,
 } from "@/lib/tasks.functions";
+import { getLocalTzOffsetMinutes } from "@/lib/timezone";
 import { SubtaskList } from "./subtask-list";
 
 type Priority = "low" | "medium" | "high" | "urgent";
@@ -177,6 +178,7 @@ export function TaskDialog({
         category_id: categoryId === "none" ? null : categoryId,
         project_id: projectId === "none" ? null : projectId,
         due_date: dueDate || null,
+        tz_offset_minutes: getLocalTzOffsetMinutes(),
       };
       if (isEdit && task) {
         return updateFn({ data: { id: task.id, ...common, status } });

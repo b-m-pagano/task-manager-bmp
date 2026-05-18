@@ -86,11 +86,28 @@ export const listMonthData = createServerFn({ method: "POST" })
     };
   });
 
-function startTsFromMinute(day: string, minute: number | null | undefined): string | null {
+function formatTzOffset(min: number): string {
+  const sign = min >= 0 ? "+" : "-";
+  const abs = Math.abs(min);
+  const h = String(Math.floor(abs / 60)).padStart(2, "0");
+  const m = String(abs % 60).padStart(2, "0");
+  return `${sign}${h}:${m}`;
+}
+
+function startTsFromMinute(
+  day: string,
+  minute: number | null | undefined,
+  tzOffsetMinutes?: number | null,
+): string | null {
   if (minute == null) return null;
   const h = String(Math.floor(minute / 60)).padStart(2, "0");
   const m = String(minute % 60).padStart(2, "0");
-  return `${day}T${h}:${m}:00`;
+  // Append the caller's local offset so Postgres timestamptz stores the
+  // intended wall-clock time. Without it, the value would be interpreted as
+  // UTC and shifted on read (a BRT 8:00 ends up showing as 5:00).
+  const offset =
+    typeof tzOffsetMinutes === "number" ? formatTzOffset(tzOffsetMinutes) : "";
+  return `${day}T${h}:${m}:00${offset}`;
 }
 
 const CreateTaskSchema = z.object({
@@ -106,6 +123,7 @@ const CreateTaskSchema = z.object({
   parent_id: z.string().uuid().nullable().optional(),
   due_date: z.string().regex(ISO_DATE).nullable().optional(),
   inbox: z.boolean().optional(),
+  tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
 });
 
 export const createTask = createServerFn({ method: "POST" })
@@ -134,7 +152,7 @@ export const createTask = createServerFn({ method: "POST" })
         scheduled_day: data.scheduled_day,
         scheduled_start: data.inbox
           ? null
-          : startTsFromMinute(data.scheduled_day, data.start_minute),
+          : startTsFromMinute(data.scheduled_day, data.start_minute, data.tz_offset_minutes),
         queue_position: nextPos,
         category_id: data.category_id ?? null,
         project_id: data.project_id ?? null,
@@ -165,19 +183,20 @@ const UpdateTaskSchema = z.object({
   queue_position: z.number().int().min(0).optional(),
   pinned_at: z.string().datetime().nullable().optional(),
   quick_note: z.string().max(500).nullable().optional(),
+  tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
 });
 
 export const updateTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => UpdateTaskSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { id, start_minute, scheduled_day, ...rest } = data;
+    const { id, start_minute, scheduled_day, tz_offset_minutes, ...rest } = data;
     const patch: Record<string, any> = { ...rest };
     if (scheduled_day !== undefined) patch.scheduled_day = scheduled_day;
     if (start_minute !== undefined) {
       const day = scheduled_day ?? null;
       if (day) {
-        patch.scheduled_start = startTsFromMinute(day, start_minute);
+        patch.scheduled_start = startTsFromMinute(day, start_minute, tz_offset_minutes);
       } else {
         // Need current day to compose; fetch row.
         const { data: existing } = await context.supabase
@@ -186,7 +205,11 @@ export const updateTask = createServerFn({ method: "POST" })
           .eq("id", id)
           .single();
         if (existing) {
-          patch.scheduled_start = startTsFromMinute(existing.scheduled_day, start_minute);
+          patch.scheduled_start = startTsFromMinute(
+            existing.scheduled_day,
+            start_minute,
+            tz_offset_minutes,
+          );
         }
       }
     }
@@ -301,6 +324,7 @@ const RescheduleSchema = z.object({
     )
     .min(1)
     .max(100),
+  tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
 });
 
 /**
@@ -318,7 +342,7 @@ export const rescheduleTasks = createServerFn({ method: "POST" })
           .from("tasks")
           .update({
             scheduled_day: u.scheduled_day,
-            scheduled_start: startTsFromMinute(u.scheduled_day, u.start_minute),
+            scheduled_start: startTsFromMinute(u.scheduled_day, u.start_minute, data.tz_offset_minutes),
           })
           .eq("id", u.id)
           .eq("user_id", userId),
@@ -409,6 +433,7 @@ const ScheduleFromInboxSchema = z.object({
   id: z.string().uuid(),
   scheduled_day: z.string().regex(ISO_DATE),
   start_minute: z.number().int().min(0).max(1439).nullable().optional(),
+  tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
 });
 
 export const scheduleFromInbox = createServerFn({ method: "POST" })
@@ -431,7 +456,11 @@ export const scheduleFromInbox = createServerFn({ method: "POST" })
       .update({
         is_inbox: false,
         scheduled_day: data.scheduled_day,
-        scheduled_start: startTsFromMinute(data.scheduled_day, data.start_minute ?? null),
+        scheduled_start: startTsFromMinute(
+          data.scheduled_day,
+          data.start_minute ?? null,
+          data.tz_offset_minutes,
+        ),
         queue_position: nextPos,
       } as never)
       .eq("id", data.id);

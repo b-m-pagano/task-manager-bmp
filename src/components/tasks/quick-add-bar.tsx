@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { quickAddParse } from "@/lib/quick-add.functions";
 import { createTask } from "@/lib/tasks.functions";
+import { getLocalTzOffsetMinutes } from "@/lib/timezone";
 
 interface QuickAddBarProps {
   todayISO: string;
@@ -32,6 +33,7 @@ export function QuickAddBar({ todayISO, onCreated }: QuickAddBarProps) {
           priority: parsed.priority,
           due_date: parsed.due_date,
           inbox: parsed.inbox ?? false,
+          tz_offset_minutes: getLocalTzOffsetMinutes(),
         },
       });
       setText("");
