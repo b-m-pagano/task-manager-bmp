@@ -335,6 +335,7 @@ export const carryUnfinished = createServerFn({ method: "POST" })
     const { data: stale } = await supabase
       .from("tasks")
       .select("id, queue_position")
+      .eq("is_inbox", false)
       .lt("scheduled_day", today)
       .eq("status", "pending")
       .order("scheduled_day", { ascending: true })
@@ -371,4 +372,69 @@ export const carryUnfinished = createServerFn({ method: "POST" })
         .eq("user_id", userId);
     }
     return { moved: stale.length };
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INBOX
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const listInbox = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("is_inbox", true)
+      .is("parent_id", null)
+      .order("priority", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  });
+
+export const sendToInbox = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("tasks")
+      .update({ is_inbox: true, scheduled_start: null, pinned_at: null } as never)
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+const ScheduleFromInboxSchema = z.object({
+  id: z.string().uuid(),
+  scheduled_day: z.string().regex(ISO_DATE),
+  start_minute: z.number().int().min(0).max(1439).nullable().optional(),
+});
+
+export const scheduleFromInbox = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => ScheduleFromInboxSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: maxRow } = await supabase
+      .from("tasks")
+      .select("queue_position")
+      .eq("scheduled_day", data.scheduled_day)
+      .eq("user_id", userId)
+      .eq("is_inbox", false)
+      .order("queue_position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextPos = (maxRow?.queue_position ?? -1) + 1;
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        is_inbox: false,
+        scheduled_day: data.scheduled_day,
+        scheduled_start: startTsFromMinute(data.scheduled_day, data.start_minute ?? null),
+        queue_position: nextPos,
+      } as never)
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
   });
