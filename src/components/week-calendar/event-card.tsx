@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { minuteToTop, PX_PER_MIN } from "./time-grid";
 import type { MockCategory, MockEvent, MockProject } from "@/lib/mock/week-mock";
-import { AlertTriangle, CheckCircle2, Circle, CircleDot, Flag } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Circle, CircleDot, Flag, Loader2 } from "lucide-react";
 
 interface EventCardProps {
   event: MockEvent;
