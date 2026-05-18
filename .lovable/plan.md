@@ -1,37 +1,34 @@
 ## Objetivo
 
-Hoje, ao clicar num card na visão Hoje, abre o `TaskDialog` (`src/components/tasks/task-dialog.tsx`). Em telas comuns (≈638px de altura como a sua viewport atual), o conteúdo ultrapassa os `max-h-[90vh]` do `DialogContent` e aparece com rolagem interna — campos como Notas e botões do rodapé só aparecem quando o usuário rola.
+Permitir editar a Categoria e o Projeto a partir do diálogo que abre ao clicar em um card (em qualquer visão — Hoje, Semana, etc.), inclusive **criando** uma nova categoria/projeto na hora, com nome + cor.
 
-A meta é fazer o card (modal) caber inteiro na janela na maioria das alturas de tela, sem alterar nenhuma funcionalidade.
+## Contexto
 
-## Mudanças (apenas visual / layout, em `src/components/tasks/task-dialog.tsx`)
+- O componente `EntityPicker` (`src/components/tasks/entity-picker.tsx`) já existe e já implementa: busca, seleção, "Sem categoria/projeto" e mini-form de criação (nome + paleta de 8 cores). Hoje ele é usado só inline nos cards da visão Hoje.
+- O `TaskDialog` (`src/components/tasks/task-dialog.tsx`), que abre ao clicar/visualizar qualquer card, ainda usa dois `<Select>` simples para Categoria e Projeto — sem opção de criar.
+- Trocando esses dois Selects pelo `EntityPicker`, a funcionalidade fica disponível **em todas as visões** que abrem o card (Semana, Hoje, Inbox, Tarefas, etc.) sem duplicar código.
 
-1. **Aumentar o aproveitamento horizontal**
-   - Trocar `sm:max-w-[560px]` por `sm:max-w-[720px]` para acomodar mais campos por linha.
-   - Reduzir `p-6` do `DialogContent` para `p-5` (override via className).
+## Mudanças
 
-2. **Compactar espaçamentos verticais**
-   - `grid gap-4 py-2` → `grid gap-3 py-1`.
-   - Cada `grid gap-1.5` de campo → `grid gap-1`.
-   - `Textarea` de Descrição: `rows={2}` → `rows={2}` mantém, mas com `resize-none`.
-   - `Textarea` de Notas: `rows={3}` → `rows={2}` com `resize-none`.
+### `src/components/tasks/task-dialog.tsx`
 
-3. **Reorganizar em colunas para encurtar a altura**
-   - Mover Categoria, Projeto, Duração, Prioridade, Status para uma única grid `grid-cols-2 md:grid-cols-3 gap-3` (em vez de duas grids separadas de 2 e 3 colunas).
-   - Manter Dia / Horário / Prazo na grid de 3 colunas que já existe.
+1. Importar `EntityPicker` e `Entity` de `@/components/tasks/entity-picker`.
+2. Dentro do grid de campos (linhas ~275-313), substituir os dois blocos `<Select>` de **Categoria** e **Projeto** por dois `EntityPicker`:
+   - `kind="category"` / `kind="project"`.
+   - `value={categoryId === "none" ? null : categoryId}` (idem projeto).
+   - `onChange={(id) => setCategoryId(id ?? "none")}` (idem projeto).
+   - `options={categories}` / `options={projects}`.
+   - `trigger`: um `<Button variant="outline">` (mesma altura dos demais campos do grid) mostrando bolinha de cor + nome selecionado, ou "Sem categoria"/"Sem projeto" em estado vazio.
+3. Manter toda a lógica de salvar intacta (`category_id`/`project_id` já são mapeados a partir do estado existente).
+4. No `onSuccess` da mutação de criação do `EntityPicker`, ele já invalida `["categories"]` / `["projects"]` e `["today"]`/`["week"]` — então o próximo render do dialog vai receber a nova opção via props (`categories`/`projects` vêm das queries já existentes em cada rota).
 
-4. **Rodapé mais enxuto**
-   - Botões secundários (Excluir, Duplicar, Mover para Inbox) ficam em `size="sm"` (já são) e o `DialogFooter` ganha `pt-2` em vez do espaçamento padrão maior.
+### Nenhuma alteração em
 
-5. **Garantir fallback em telas muito baixas**
-   - Manter `max-h-[90vh] overflow-y-auto` como segurança: em monitores realmente curtos a rolagem ainda existe, mas para a viewport atual (~638px) e maiores o modal cabe inteiro.
+- `entity-picker.tsx` (já completo)
+- Server functions (`categories.functions.ts`, `projects.functions.ts`)
+- Schema do banco
+- Demais visões — elas já passam `categories`/`projects` para o `TaskDialog`.
 
-## Fora do escopo
+## Resultado
 
-- Não mexer em nenhum comportamento, validação, mutations, atalhos de teclado, ou na lógica do `SubtaskList`.
-- Não alterar o `TaskCard`, a visão Hoje, nem o `EntityPicker`.
-- Não trocar o componente `Dialog` base nem o sistema de tokens.
-
-## Verificação
-
-Após implementar: abrir um card na visão Hoje na viewport atual (1078×638) e confirmar que título, descrição, categoria/projeto/duração/prioridade/status, dia/horário/prazo, subtarefas (se houver poucas), notas e rodapé aparecem sem scroll interno.
+Ao abrir um card em qualquer visão, os campos Categoria e Projeto viram chips clicáveis com popover de busca + botão "Nova categoria"/"Novo projeto" (nome + cor), exatamente como já funciona inline na visão Hoje.

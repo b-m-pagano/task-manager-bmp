@@ -42,6 +42,8 @@ import {
 } from "@/lib/tasks.functions";
 import { getLocalTzOffsetMinutes } from "@/lib/timezone";
 import { SubtaskList } from "./subtask-list";
+import { EntityPicker } from "./entity-picker";
+import { ChevronDown } from "lucide-react";
 
 type Priority = "low" | "medium" | "high" | "urgent";
 type Status = "pending" | "in_progress" | "done" | "skipped";
