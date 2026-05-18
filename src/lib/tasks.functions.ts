@@ -86,11 +86,28 @@ export const listMonthData = createServerFn({ method: "POST" })
     };
   });
 
-function startTsFromMinute(day: string, minute: number | null | undefined): string | null {
+function formatTzOffset(min: number): string {
+  const sign = min >= 0 ? "+" : "-";
+  const abs = Math.abs(min);
+  const h = String(Math.floor(abs / 60)).padStart(2, "0");
+  const m = String(abs % 60).padStart(2, "0");
+  return `${sign}${h}:${m}`;
+}
+
+function startTsFromMinute(
+  day: string,
+  minute: number | null | undefined,
+  tzOffsetMinutes?: number | null,
+): string | null {
   if (minute == null) return null;
   const h = String(Math.floor(minute / 60)).padStart(2, "0");
   const m = String(minute % 60).padStart(2, "0");
-  return `${day}T${h}:${m}:00`;
+  // Append the caller's local offset so Postgres timestamptz stores the
+  // intended wall-clock time. Without it, the value would be interpreted as
+  // UTC and shifted on read (a BRT 8:00 ends up showing as 5:00).
+  const offset =
+    typeof tzOffsetMinutes === "number" ? formatTzOffset(tzOffsetMinutes) : "";
+  return `${day}T${h}:${m}:00${offset}`;
 }
 
 const CreateTaskSchema = z.object({
