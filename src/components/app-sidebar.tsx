@@ -56,11 +56,11 @@ export function AppSidebar() {
         <Link to="/app" className="flex items-center gap-2 px-2 py-1.5">
           <img
             src={logoFilaFoco}
-            alt="FilaFoco"
+            alt="BMP Task Manager"
             className="h-7 w-7 shrink-0 rounded-md object-cover"
           />
           <span className="truncate text-sm font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-            FilaFoco
+            BMP Task Manager
           </span>
         </Link>
       </SidebarHeader>
