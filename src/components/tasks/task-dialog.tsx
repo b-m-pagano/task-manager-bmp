@@ -241,13 +241,13 @@ export function TaskDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:max-w-[720px]">
           <DialogHeader>
             <DialogTitle>{isEdit ? "Editar tarefa" : "Nova tarefa"}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-1.5">
+          <div className="grid gap-3 py-1">
+            <div className="grid gap-1">
               <Label htmlFor="t-title">Título *</Label>
               <Input
                 id="t-title"
@@ -259,7 +259,7 @@ export function TaskDialog({
               />
             </div>
 
-            <div className="grid gap-1.5">
+            <div className="grid gap-1">
               <Label htmlFor="t-desc">Descrição</Label>
               <Textarea
                 id="t-desc"
@@ -268,11 +268,12 @@ export function TaskDialog({
                 placeholder="Contexto, links, requisitos…"
                 rows={2}
                 maxLength={4000}
+                className="resize-none"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              <div className="grid gap-1">
                 <Label>Categoria</Label>
                 <Select value={categoryId} onValueChange={setCategoryId}>
                   <SelectTrigger>
@@ -294,7 +295,7 @@ export function TaskDialog({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5">
+              <div className="grid gap-1">
                 <Label>Projeto</Label>
                 <Select value={projectId} onValueChange={setProjectId}>
                   <SelectTrigger>
@@ -310,10 +311,7 @@ export function TaskDialog({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div className="grid gap-1.5">
+              <div className="grid gap-1">
                 <Label htmlFor="t-dur">Duração (min)</Label>
                 <Input
                   id="t-dur"
@@ -325,7 +323,7 @@ export function TaskDialog({
                   onChange={(e) => setDuration(Number(e.target.value) || 30)}
                 />
               </div>
-              <div className="grid gap-1.5">
+              <div className="grid gap-1">
                 <Label>Prioridade</Label>
                 <Select
                   value={priority}
