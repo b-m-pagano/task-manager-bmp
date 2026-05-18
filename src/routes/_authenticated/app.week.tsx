@@ -400,6 +400,9 @@ function WeekPage() {
       if (e.key === "n" || e.key === "N") {
         e.preventDefault();
         openCreate();
+      } else if (e.key === "i" || e.key === "I") {
+        e.preventDefault();
+        window.location.href = "/app/inbox";
       } else if (e.key === "/") {
         e.preventDefault();
         document.getElementById("quick-add-input")?.focus();
