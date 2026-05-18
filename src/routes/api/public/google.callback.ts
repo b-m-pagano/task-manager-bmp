@@ -21,7 +21,15 @@ export const Route = createFileRoute("/api/public/google/callback")({
         const code = url.searchParams.get("code");
         const state = url.searchParams.get("state");
         const error = url.searchParams.get("error");
-        const settingsUrl = `${url.origin}/app/settings`;
+
+        // Reconstrói o origin público a partir dos headers do proxy
+        // (request.url pode apontar para localhost:8080 dentro do worker).
+        const fwdHost = request.headers.get("x-forwarded-host");
+        const fwdProto = request.headers.get("x-forwarded-proto");
+        const host = fwdHost ?? request.headers.get("host") ?? url.host;
+        const proto = fwdProto ?? (host.startsWith("localhost") ? "http" : "https");
+        const publicOrigin = `${proto}://${host}`;
+        const settingsUrl = `${publicOrigin}/app/settings`;
 
         if (error) return htmlRedirect(`${settingsUrl}?google=denied`, "Conexão cancelada.");
         if (!code || !state) return new Response("Missing code/state", { status: 400 });
@@ -32,7 +40,7 @@ export const Route = createFileRoute("/api/public/google/callback")({
         try {
           const tokens = await exchangeCodeForTokens(
             code,
-            `${url.origin}/api/public/google/callback`,
+            `${publicOrigin}/api/public/google/callback`,
           );
           const expiresAt = tokens.expires_in
             ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
