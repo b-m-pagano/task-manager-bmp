@@ -105,7 +105,7 @@ function WeekPage() {
 
   const rescheduleMut = useMutation({
     mutationFn: (updates: { id: string; scheduled_day: string; start_minute: number }[]) =>
-      rescheduleFn({ data: { updates } }),
+      rescheduleFn({ data: { updates, tz_offset_minutes: getLocalTzOffsetMinutes() } }),
     onError: () => {
       toast.error("Não foi possível reagendar");
       qc.invalidateQueries({ queryKey: ["week"] });
