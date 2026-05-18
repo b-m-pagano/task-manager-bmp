@@ -96,11 +96,19 @@ export function EventCard({ event, category, project, onToggleStatus, isToggling
                 e.stopPropagation();
                 onToggleStatus();
               }}
-              className="mt-px shrink-0 rounded-full transition-transform hover:scale-110"
+              disabled={isTogglingStatus}
+              className={cn(
+                "mt-px shrink-0 rounded-full transition-transform hover:scale-110",
+                isTogglingStatus && "pointer-events-none animate-pulse opacity-60",
+              )}
               aria-label={isDone ? "Marcar como pendente" : "Marcar como concluída"}
               title={isDone ? "Marcar como pendente" : "Concluir"}
             >
-              {statusIcon[event.status]}
+              {isTogglingStatus ? (
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+              ) : (
+                statusIcon[event.status]
+              )}
             </button>
           ) : (
             <span className="mt-px shrink-0">{statusIcon[event.status]}</span>
