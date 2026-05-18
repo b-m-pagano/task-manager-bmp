@@ -123,6 +123,7 @@ const CreateTaskSchema = z.object({
   parent_id: z.string().uuid().nullable().optional(),
   due_date: z.string().regex(ISO_DATE).nullable().optional(),
   inbox: z.boolean().optional(),
+  tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
 });
 
 export const createTask = createServerFn({ method: "POST" })
