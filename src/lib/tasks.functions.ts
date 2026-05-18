@@ -183,6 +183,7 @@ const UpdateTaskSchema = z.object({
   queue_position: z.number().int().min(0).optional(),
   pinned_at: z.string().datetime().nullable().optional(),
   quick_note: z.string().max(500).nullable().optional(),
+  tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
 });
 
 export const updateTask = createServerFn({ method: "POST" })
