@@ -1,4 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { listInbox } from "@/lib/tasks.functions";
 import logoFilaFoco from "@/assets/logo-filafoco.png";
 import {
   LayoutDashboard,
@@ -46,6 +49,12 @@ const systemItems = [
 
 export function AppSidebar() {
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
+  const listInboxFn = useServerFn(listInbox);
+  const { data: inboxCount } = useQuery({
+    queryKey: ["inbox"],
+    queryFn: () => listInboxFn(),
+    select: (rows) => (Array.isArray(rows) ? rows.length : 0),
+  });
 
   const isActive = (url: string, exact?: boolean) =>
     exact ? currentPath === url : currentPath === url || currentPath.startsWith(url + "/");
@@ -69,16 +78,25 @@ export function AppSidebar() {
           <SidebarGroupLabel>Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url, item.exact)} tooltip={item.title}>
-                    <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {mainItems.map((item) => {
+                const isInbox = item.url === "/app/inbox";
+                const showBadge = isInbox && (inboxCount ?? 0) > 0;
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url, item.exact)} tooltip={item.title}>
+                      <Link to={item.url}>
+                        <item.icon />
+                        <span className="flex-1">{item.title}</span>
+                        {showBadge && (
+                          <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold tabular-nums text-primary-foreground group-data-[collapsible=icon]:hidden">
+                            {inboxCount}
+                          </span>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

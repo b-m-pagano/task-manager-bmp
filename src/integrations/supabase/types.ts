@@ -176,6 +176,7 @@ export type Database = {
           due_date: string | null
           estimated_minutes: number
           id: string
+          is_inbox: boolean
           notes: string | null
           parent_id: string | null
           pinned_at: string | null
@@ -204,6 +205,7 @@ export type Database = {
           due_date?: string | null
           estimated_minutes?: number
           id?: string
+          is_inbox?: boolean
           notes?: string | null
           parent_id?: string | null
           pinned_at?: string | null
@@ -232,6 +234,7 @@ export type Database = {
           due_date?: string | null
           estimated_minutes?: number
           id?: string
+          is_inbox?: boolean
           notes?: string | null
           parent_id?: string | null
           pinned_at?: string | null

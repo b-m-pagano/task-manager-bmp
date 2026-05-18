@@ -26,6 +26,10 @@ export const quickAddParse = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
+    // Detect "#inbox" hashtag → mark task as inbox, strip from text before LLM.
+    const inboxMatch = /(^|\s)#inbox\b/i.test(data.text);
+    const cleanText = data.text.replace(/(^|\s)#inbox\b/gi, " ").trim();
+
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("LOVABLE_API_KEY ausente");
     const gateway = createLovableAiGatewayProvider(key);
@@ -37,8 +41,8 @@ export const quickAddParse = createServerFn({ method: "POST" })
         "Você é um parser de tarefas. Sempre responda em PT-BR. " +
         `Hoje é ${data.today} (use como referência para 'hoje', 'amanhã', 'sexta', etc.). ` +
         "Se duração não for clara, use 30 min. Prioridade default 'medium'.",
-      prompt: `Texto livre: "${data.text}"\n\nExtraia: title (sem datas/horários), estimated_minutes, scheduled_day, priority, due_date (ou null), category_hint (ou null).`,
+      prompt: `Texto livre: "${cleanText || data.text}"\n\nExtraia: title (sem datas/horários), estimated_minutes, scheduled_day, priority, due_date (ou null), category_hint (ou null).`,
     });
 
-    return out;
+    return { ...out, inbox: inboxMatch };
   });

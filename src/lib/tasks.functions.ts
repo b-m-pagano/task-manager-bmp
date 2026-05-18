@@ -22,6 +22,7 @@ export const listWeekData = createServerFn({ method: "POST" })
       supabase
         .from("tasks")
         .select("*")
+        .eq("is_inbox", false)
         .gte("scheduled_day", first)
         .lte("scheduled_day", last)
         .order("queue_position", { ascending: true }),
@@ -68,6 +69,7 @@ export const listMonthData = createServerFn({ method: "POST" })
       supabase
         .from("tasks")
         .select("id,scheduled_day,category_id,status")
+        .eq("is_inbox", false)
         .gte("scheduled_day", data.from)
         .lte("scheduled_day", data.to),
       supabase
@@ -103,6 +105,7 @@ const CreateTaskSchema = z.object({
   project_id: z.string().uuid().nullable().optional(),
   parent_id: z.string().uuid().nullable().optional(),
   due_date: z.string().regex(ISO_DATE).nullable().optional(),
+  inbox: z.boolean().optional(),
 });
 
 export const createTask = createServerFn({ method: "POST" })
@@ -129,13 +132,16 @@ export const createTask = createServerFn({ method: "POST" })
         estimated_minutes: data.estimated_minutes,
         priority: data.priority,
         scheduled_day: data.scheduled_day,
-        scheduled_start: startTsFromMinute(data.scheduled_day, data.start_minute),
+        scheduled_start: data.inbox
+          ? null
+          : startTsFromMinute(data.scheduled_day, data.start_minute),
         queue_position: nextPos,
         category_id: data.category_id ?? null,
         project_id: data.project_id ?? null,
         parent_id: data.parent_id ?? null,
         due_date: data.due_date ?? null,
-      })
+        is_inbox: data.inbox ?? false,
+      } as never)
       .select()
       .single();
     if (error) throw error;
@@ -329,6 +335,7 @@ export const carryUnfinished = createServerFn({ method: "POST" })
     const { data: stale } = await supabase
       .from("tasks")
       .select("id, queue_position")
+      .eq("is_inbox", false)
       .lt("scheduled_day", today)
       .eq("status", "pending")
       .order("scheduled_day", { ascending: true })
@@ -365,4 +372,69 @@ export const carryUnfinished = createServerFn({ method: "POST" })
         .eq("user_id", userId);
     }
     return { moved: stale.length };
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INBOX
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const listInbox = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("is_inbox", true)
+      .is("parent_id", null)
+      .order("priority", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  });
+
+export const sendToInbox = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("tasks")
+      .update({ is_inbox: true, scheduled_start: null, pinned_at: null } as never)
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+const ScheduleFromInboxSchema = z.object({
+  id: z.string().uuid(),
+  scheduled_day: z.string().regex(ISO_DATE),
+  start_minute: z.number().int().min(0).max(1439).nullable().optional(),
+});
+
+export const scheduleFromInbox = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => ScheduleFromInboxSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: maxRow } = await supabase
+      .from("tasks")
+      .select("queue_position")
+      .eq("scheduled_day", data.scheduled_day)
+      .eq("user_id", userId)
+      .eq("is_inbox", false)
+      .order("queue_position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextPos = (maxRow?.queue_position ?? -1) + 1;
+    const { error } = await supabase
+      .from("tasks")
+      .update({
+        is_inbox: false,
+        scheduled_day: data.scheduled_day,
+        scheduled_start: startTsFromMinute(data.scheduled_day, data.start_minute ?? null),
+        queue_position: nextPos,
+      } as never)
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
   });
