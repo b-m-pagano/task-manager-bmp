@@ -40,6 +40,7 @@ export function DraggableTask({
   onClick,
   onDrop,
   onToggleStatus,
+  isTogglingStatus,
   columnRefs,
 }: Props) {
   const [dragging, setDragging] = React.useState(false);
