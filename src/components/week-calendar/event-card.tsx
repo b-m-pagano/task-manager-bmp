@@ -37,7 +37,7 @@ function fmt(minute: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export function EventCard({ event, category, project }: EventCardProps) {
+export function EventCard({ event, category, project, onToggleStatus }: EventCardProps) {
   const top = minuteToTop(event.startMinute);
   const height = Math.max(28, event.durationMinutes * PX_PER_MIN - 2);
   const compact = height < 44;
