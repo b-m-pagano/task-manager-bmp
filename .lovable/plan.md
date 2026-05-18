@@ -1,60 +1,37 @@
 ## Objetivo
 
-Permitir, direto nos cards da visão **Hoje**, trocar a categoria e o projeto de uma tarefa — e também criar uma nova categoria ou projeto na hora, sem abrir o diálogo de edição.
+Hoje, ao clicar num card na visão Hoje, abre o `TaskDialog` (`src/components/tasks/task-dialog.tsx`). Em telas comuns (≈638px de altura como a sua viewport atual), o conteúdo ultrapassa os `max-h-[90vh]` do `DialogContent` e aparece com rolagem interna — campos como Notas e botões do rodapé só aparecem quando o usuário rola.
 
-## UX nos cards (visão Hoje)
+A meta é fazer o card (modal) caber inteiro na janela na maioria das alturas de tela, sem alterar nenhuma funcionalidade.
 
-Cada card ganha dois "chips" clicáveis ao lado do título:
+## Mudanças (apenas visual / layout, em `src/components/tasks/task-dialog.tsx`)
 
-- Chip de **categoria** (bolinha colorida + nome, ou "Categoria" se vazio)
-- Chip de **projeto** (ícone + nome, ou "Projeto" se vazio)
+1. **Aumentar o aproveitamento horizontal**
+   - Trocar `sm:max-w-[560px]` por `sm:max-w-[720px]` para acomodar mais campos por linha.
+   - Reduzir `p-6` do `DialogContent` para `p-5` (override via className).
 
-Clicar em um chip abre um **Popover** com:
+2. **Compactar espaçamentos verticais**
+   - `grid gap-4 py-2` → `grid gap-3 py-1`.
+   - Cada `grid gap-1.5` de campo → `grid gap-1`.
+   - `Textarea` de Descrição: `rows={2}` → `rows={2}` mantém, mas com `resize-none`.
+   - `Textarea` de Notas: `rows={3}` → `rows={2}` com `resize-none`.
 
-1. Campo de busca no topo
-2. Opção "Sem categoria" / "Sem projeto" para limpar
-3. Lista das categorias/projetos existentes (clique troca imediatamente)
-4. Separador
-5. Botão **"+ Nova categoria"** / **"+ Novo projeto"** que expande um mini-form inline com:
-   - Input de **nome** (obrigatório, max 80)
-   - Seletor de **cor** (paleta de 8 cores pré-definidas em swatches clicáveis)
-   - Botões **Criar** / **Cancelar**
-6. Ao criar, a nova entidade é selecionada automaticamente na tarefa
+3. **Reorganizar em colunas para encurtar a altura**
+   - Mover Categoria, Projeto, Duração, Prioridade, Status para uma única grid `grid-cols-2 md:grid-cols-3 gap-3` (em vez de duas grids separadas de 2 e 3 colunas).
+   - Manter Dia / Horário / Prazo na grid de 3 colunas que já existe.
 
-Feedback: atualização otimista no card (chip muda imediato) + spinner discreto + rollback em erro + toast.
+4. **Rodapé mais enxuto**
+   - Botões secundários (Excluir, Duplicar, Mover para Inbox) ficam em `size="sm"` (já são) e o `DialogFooter` ganha `pt-2` em vez do espaçamento padrão maior.
 
-## Trabalho técnico
+5. **Garantir fallback em telas muito baixas**
+   - Manter `max-h-[90vh] overflow-y-auto` como segurança: em monitores realmente curtos a rolagem ainda existe, mas para a viewport atual (~638px) e maiores o modal cabe inteiro.
 
-```text
-src/lib/projects.functions.ts            [NOVO]
-  - listProjects / upsertProject / deleteProject
-  - mesma forma de categories.functions.ts
+## Fora do escopo
 
-src/components/tasks/category-picker.tsx [NOVO]
-  - Popover com busca, lista, "+ Nova" + mini-form (nome + cor)
-  - Props: value, onChange(id|null), categories, trigger
-  - Internamente: useMutation(upsertCategory) + invalidate ["categories"]
+- Não mexer em nenhum comportamento, validação, mutations, atalhos de teclado, ou na lógica do `SubtaskList`.
+- Não alterar o `TaskCard`, a visão Hoje, nem o `EntityPicker`.
+- Não trocar o componente `Dialog` base nem o sistema de tokens.
 
-src/components/tasks/project-picker.tsx  [NOVO]
-  - Mesmo padrão, para projetos
+## Verificação
 
-src/routes/_authenticated/app.today.tsx  [EDIT]
-  - Carregar categories + projects (useQuery)
-  - Substituir o badge estático de categoria por <CategoryPicker>
-  - Adicionar <ProjectPicker> ao lado
-  - Mutação updateTask otimista para troca (já existe pattern de toggle)
-```
-
-## Detalhes
-
-- **Paleta de cores fixa** para criação rápida: 8 swatches (indigo, emerald, amber, rose, sky, violet, orange, slate) — cobre os casos comuns sem color picker complexo.
-- Os pickers só aparecem na visão **Hoje** nesta entrega. Semana e Inbox seguem como estão.
-- Reuso: o componente `CategoryPicker`/`ProjectPicker` é desenhado para ser reaproveitado depois em Semana/Inbox se você quiser estender.
-- O TaskDialog continua funcionando normalmente (categoria/projeto pelos Selects existentes).
-- Sem mudanças de schema: tabelas `categories` e `projects` já existem com RLS por usuário.
-
-## Fora de escopo
-
-- Editar/excluir categoria ou projeto a partir do card (continua em telas dedicadas)
-- Reordenação de categorias/projetos
-- Aplicar o picker em Semana e Inbox
+Após implementar: abrir um card na visão Hoje na viewport atual (1078×638) e confirmar que título, descrição, categoria/projeto/duração/prioridade/status, dia/horário/prazo, subtarefas (se houver poucas), notas e rodapé aparecem sem scroll interno.
