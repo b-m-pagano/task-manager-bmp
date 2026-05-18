@@ -190,13 +190,13 @@ export const updateTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => UpdateTaskSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { id, start_minute, scheduled_day, ...rest } = data;
+    const { id, start_minute, scheduled_day, tz_offset_minutes, ...rest } = data;
     const patch: Record<string, any> = { ...rest };
     if (scheduled_day !== undefined) patch.scheduled_day = scheduled_day;
     if (start_minute !== undefined) {
       const day = scheduled_day ?? null;
       if (day) {
-        patch.scheduled_start = startTsFromMinute(day, start_minute);
+        patch.scheduled_start = startTsFromMinute(day, start_minute, tz_offset_minutes);
       } else {
         // Need current day to compose; fetch row.
         const { data: existing } = await context.supabase
@@ -205,7 +205,11 @@ export const updateTask = createServerFn({ method: "POST" })
           .eq("id", id)
           .single();
         if (existing) {
-          patch.scheduled_start = startTsFromMinute(existing.scheduled_day, start_minute);
+          patch.scheduled_start = startTsFromMinute(
+            existing.scheduled_day,
+            start_minute,
+            tz_offset_minutes,
+          );
         }
       }
     }
