@@ -25,6 +25,8 @@ interface Props {
   onClick: () => void;
   /** Called once the user releases on a valid column. */
   onDrop: (d: DragDrop) => void;
+  /** Toggle the task's done/pending status from the status icon. */
+  onToggleStatus?: () => void;
   /** Map of day iso → column element, used to resolve cross-column drops. */
   columnRefs: React.MutableRefObject<Record<string, HTMLElement | null>>;
 }
@@ -35,6 +37,7 @@ export function DraggableTask({
   project,
   onClick,
   onDrop,
+  onToggleStatus,
   columnRefs,
 }: Props) {
   const [dragging, setDragging] = React.useState(false);
