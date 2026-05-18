@@ -227,6 +227,17 @@ function WeekPage() {
       });
 
       rescheduleMut.mutate(updates);
+      const endMinute = drop.startMinute + moved.estimated_minutes;
+      const AFTER = 18 * 60;
+      if (drop.startMinute >= AFTER) {
+        toast.warning("Tarefa começa após 18h", {
+          description: "Fora do horário comercial",
+        });
+      } else if (endMinute > AFTER) {
+        toast.warning("Tarefa termina após 18h", {
+          description: `Ultrapassa em ${endMinute - AFTER} min`,
+        });
+      }
       if (oldDay !== targetDay) {
         toast.success("Tarefa movida", { description: `→ ${targetDay}` });
       }
