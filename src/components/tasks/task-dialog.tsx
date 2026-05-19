@@ -125,8 +125,10 @@ export function TaskDialog({
   const createFn = useServerFn(createTask);
   const updateFn = useServerFn(updateTask);
   const deleteFn = useServerFn(deleteTask);
+  const deleteSeriesFn = useServerFn(deleteSeries);
   const duplicateFn = useServerFn(duplicateTask);
   const inboxFn = useServerFn(sendToInbox);
+
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
