@@ -144,6 +144,57 @@ export const createTask = createServerFn({ method: "POST" })
   .inputValidator((input) => CreateTaskSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
+    // Recurrence branch: materialize all occurrences sharing a series_id.
+    if (data.recurrence && !data.inbox) {
+      const rule: RecurrenceRule = data.recurrence;
+      const days = expandRecurrence(data.scheduled_day, rule);
+      if (days.length === 0) throw new Error("Regra de repetição não gerou ocorrências");
+
+      // Fetch current max queue_position per day in one round-trip.
+      const { data: existing } = await supabase
+        .from("tasks")
+        .select("scheduled_day, queue_position")
+        .in("scheduled_day", days);
+      const maxByDay = new Map<string, number>();
+      for (const r of existing ?? []) {
+        const prev = maxByDay.get(r.scheduled_day) ?? -1;
+        if (r.queue_position > prev) maxByDay.set(r.scheduled_day, r.queue_position);
+      }
+
+      const seriesId = crypto.randomUUID();
+      const rows = days.map((d) => {
+        const pos = (maxByDay.get(d) ?? -1) + 1;
+        maxByDay.set(d, pos);
+        return {
+          user_id: userId,
+          title: data.title,
+          description: data.description ?? null,
+          notes: data.notes ?? null,
+          estimated_minutes: data.estimated_minutes,
+          priority: data.priority,
+          scheduled_day: d,
+          scheduled_start: startTsFromMinute(d, data.start_minute, data.tz_offset_minutes),
+          queue_position: pos,
+          category_id: data.category_id ?? null,
+          project_id: data.project_id ?? null,
+          parent_id: data.parent_id ?? null,
+          due_date: data.due_date ?? null,
+          is_inbox: false,
+          series_id: seriesId,
+          recurrence_rule: JSON.stringify(rule),
+          recurrence_end_date: rule.until ?? null,
+        };
+      });
+
+      const { data: inserted, error } = await supabase
+        .from("tasks")
+        .insert(rows as never)
+        .select();
+      if (error) throw error;
+      return { series_id: seriesId, count: inserted?.length ?? 0, first: inserted?.[0] ?? null };
+    }
+
     const { data: maxRow } = await supabase
       .from("tasks")
       .select("queue_position")
@@ -178,6 +229,7 @@ export const createTask = createServerFn({ method: "POST" })
     if (error) throw error;
     return row;
   });
+
 
 const UpdateTaskSchema = z.object({
   id: z.string().uuid(),
