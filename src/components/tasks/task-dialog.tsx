@@ -228,7 +228,7 @@ export function TaskDialog({
       if (isEdit && task) {
         return updateFn({ data: { id: task.id, ...common, status } });
       }
-      return createFn({ data: common });
+      return createFn({ data: { ...common, recurrence: recurrencePayload() } });
     },
     onSuccess: () => {
       toast.success(isEdit ? "Tarefa atualizada" : "Tarefa criada");
