@@ -532,3 +532,64 @@ export const scheduleFromInbox = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RECURRENCE SERIES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const deleteSeries = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        series_id: z.string().uuid(),
+        from_date: z.string().regex(ISO_DATE).nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    let q = supabase
+      .from("tasks")
+      .delete()
+      .eq("series_id", data.series_id)
+      .eq("user_id", userId);
+    if (data.from_date) q = q.gte("scheduled_day", data.from_date);
+    const { error } = await q;
+    if (error) throw error;
+    return { ok: true };
+  });
+
+const UpdateSeriesPatch = z.object({
+  title: z.string().trim().min(1).max(280).optional(),
+  description: z.string().max(4000).nullable().optional(),
+  notes: z.string().max(10_000).nullable().optional(),
+  estimated_minutes: z.number().int().min(5).max(720).optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+  category_id: z.string().uuid().nullable().optional(),
+  project_id: z.string().uuid().nullable().optional(),
+});
+
+export const updateSeries = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        series_id: z.string().uuid(),
+        from_date: z.string().regex(ISO_DATE).nullable().optional(),
+        patch: UpdateSeriesPatch,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    let q = supabase
+      .from("tasks")
+      .update(data.patch as never)
+      .eq("series_id", data.series_id)
+      .eq("user_id", userId);
+    if (data.from_date) q = q.gte("scheduled_day", data.from_date);
+    const { error } = await q;
+    if (error) throw error;
+    return { ok: true };
+  });
