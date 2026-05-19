@@ -239,15 +239,27 @@ export function TaskDialog({
   });
 
   const deleteMut = useMutation({
-    mutationFn: () => deleteFn({ data: { id: task!.id } }),
+    mutationFn: async (scope: "single" | "future" | "all") => {
+      if (scope !== "single" && task?.series_id) {
+        await deleteSeriesFn({
+          data: {
+            series_id: task.series_id,
+            from_date: scope === "future" ? task.scheduled_day : null,
+          },
+        });
+        return;
+      }
+      await deleteFn({ data: { id: task!.id } });
+    },
     onSuccess: () => {
-      toast.success("Tarefa excluída");
+      toast.success("Excluído");
       qc.invalidateQueries({ queryKey: ["week"] });
       setConfirmDelete(false);
       onOpenChange(false);
     },
     onError: (err) => toast.error("Falha ao excluir", { description: String(err) }),
   });
+
 
   const duplicateMut = useMutation({
     mutationFn: () => duplicateFn({ data: { id: task!.id } }),
