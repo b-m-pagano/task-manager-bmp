@@ -143,6 +143,14 @@ export function TaskDialog({
   const [dueDate, setDueDate] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Recurrence (create-mode only)
+  const [recFreq, setRecFreq] = useState<"none" | RecurrenceFreq>("none");
+  const [recInterval, setRecInterval] = useState(1);
+  const [recUnit, setRecUnit] = useState<CustomUnit>("week");
+  const [recWeekdays, setRecWeekdays] = useState<number[]>([]);
+  const [recUntil, setRecUntil] = useState("");
+
+
   // Reset state when dialog opens
   useEffect(() => {
     if (!open) return;
