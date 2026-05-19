@@ -667,22 +667,50 @@ export function TaskDialog({
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir tarefa?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {task?.series_id ? "Excluir tarefa recorrente?" : "Excluir tarefa?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Subtarefas associadas permanecerão (sem pai).
+              {task?.series_id
+                ? "Esta tarefa faz parte de uma série recorrente. Escolha o escopo da exclusão."
+                : "Esta ação não pode ser desfeita. Subtarefas associadas permanecerão (sem pai)."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteMut.mutate()}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
+            {task?.series_id ? (
+              <>
+                <AlertDialogAction
+                  onClick={() => deleteMut.mutate("single")}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Apenas esta
+                </AlertDialogAction>
+                <AlertDialogAction
+                  onClick={() => deleteMut.mutate("future")}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Esta e futuras
+                </AlertDialogAction>
+                <AlertDialogAction
+                  onClick={() => deleteMut.mutate("all")}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Toda a série
+                </AlertDialogAction>
+              </>
+            ) : (
+              <AlertDialogAction
+                onClick={() => deleteMut.mutate("single")}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </>
   );
 }
