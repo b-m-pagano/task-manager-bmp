@@ -1,34 +1,56 @@
-## Objetivo
+## Tarefas recorrentes
 
-Permitir editar a Categoria e o Projeto a partir do diálogo que abre ao clicar em um card (em qualquer visão — Hoje, Semana, etc.), inclusive **criando** uma nova categoria/projeto na hora, com nome + cor.
+Adicionar repetição (diária, semanal, quinzenal, mensal, personalizada) com data de término opcional.
 
-## Contexto
+### Decisões-chave
 
-- O componente `EntityPicker` (`src/components/tasks/entity-picker.tsx`) já existe e já implementa: busca, seleção, "Sem categoria/projeto" e mini-form de criação (nome + paleta de 8 cores). Hoje ele é usado só inline nos cards da visão Hoje.
-- O `TaskDialog` (`src/components/tasks/task-dialog.tsx`), que abre ao clicar/visualizar qualquer card, ainda usa dois `<Select>` simples para Categoria e Projeto — sem opção de criar.
-- Trocando esses dois Selects pelo `EntityPicker`, a funcionalidade fica disponível **em todas as visões** que abrem o card (Semana, Hoje, Inbox, Tarefas, etc.) sem duplicar código.
+- **Materialização**: na hora de salvar, geramos as N ocorrências como linhas reais em `tasks`, todas marcadas com um `series_id` comum. Vantagem: cada ocorrência aparece no calendário, pode ser arrastada, concluída e editada individualmente, sem mudar o motor de agendamento atual.
+- **Limite de segurança**: até 365 ocorrências ou a data de término (o que vier primeiro). Sem data de término, exigimos no mínimo uma — default sugerido: 3 meses à frente.
+- **Edição de série**: ao editar/excluir uma ocorrência, perguntamos "Apenas esta" ou "Esta e futuras" (padrão: apenas esta).
 
-## Mudanças
+### Banco (migração)
 
-### `src/components/tasks/task-dialog.tsx`
+- `tasks.series_id uuid null` + índice
+- `tasks.recurrence_rule` (já existe `text`) passa a guardar JSON estruturado:
+  ```json
+  { "freq": "daily|weekly|biweekly|monthly|custom",
+    "interval": 1, "byweekday": [1,3,5], "until": "2026-12-31", "count": null }
+  ```
+- `tasks.recurrence_end_date date null` (espelho de `until` para queries rápidas)
 
-1. Importar `EntityPicker` e `Entity` de `@/components/tasks/entity-picker`.
-2. Dentro do grid de campos (linhas ~275-313), substituir os dois blocos `<Select>` de **Categoria** e **Projeto** por dois `EntityPicker`:
-   - `kind="category"` / `kind="project"`.
-   - `value={categoryId === "none" ? null : categoryId}` (idem projeto).
-   - `onChange={(id) => setCategoryId(id ?? "none")}` (idem projeto).
-   - `options={categories}` / `options={projects}`.
-   - `trigger`: um `<Button variant="outline">` (mesma altura dos demais campos do grid) mostrando bolinha de cor + nome selecionado, ou "Sem categoria"/"Sem projeto" em estado vazio.
-3. Manter toda a lógica de salvar intacta (`category_id`/`project_id` já são mapeados a partir do estado existente).
-4. No `onSuccess` da mutação de criação do `EntityPicker`, ele já invalida `["categories"]` / `["projects"]` e `["today"]`/`["week"]` — então o próximo render do dialog vai receber a nova opção via props (`categories`/`projects` vêm das queries já existentes em cada rota).
+### Backend (`src/lib/tasks.functions.ts`)
 
-### Nenhuma alteração em
+- Estender `CreateTaskSchema` com bloco opcional `recurrence`.
+- Novo helper `expandRecurrence(start, rule)` em `src/lib/queue/recurrence.ts` que retorna a lista de datas.
+- Em `createTask`: se `recurrence` presente, gerar todas as ocorrências em uma única `insert` em lote, compartilhando `series_id = gen_random_uuid()`.
+- Novas server fns:
+  - `updateSeries({ series_id, from_date, patch })` — edita esta e futuras
+  - `deleteSeries({ series_id, from_date })` — exclui esta e futuras
 
-- `entity-picker.tsx` (já completo)
-- Server functions (`categories.functions.ts`, `projects.functions.ts`)
-- Schema do banco
-- Demais visões — elas já passam `categories`/`projects` para o `TaskDialog`.
+### UI (`src/components/tasks/task-dialog.tsx`)
 
-## Resultado
+Novo bloco "Repetição" (colapsado por padrão):
 
-Ao abrir um card em qualquer visão, os campos Categoria e Projeto viram chips clicáveis com popover de busca + botão "Nova categoria"/"Novo projeto" (nome + cor), exatamente como já funciona inline na visão Hoje.
+```text
+[ Repetir ▾ ]  Não repetir | Diária | Semanal | Quinzenal | Mensal | Personalizada
+   ├─ (se Semanal/Personalizada) dias da semana: S T Q Q S S D
+   ├─ (se Personalizada) "A cada [N] [dias|semanas|meses]"
+   └─ Termina em: [ date ]   (default: +3 meses)
+```
+
+Mostrado apenas em modo "criar". Em modo "editar", se a tarefa pertence a uma série, exibimos um rótulo "Parte de uma série recorrente" + botão "Editar série" que abre o diálogo de escopo (apenas esta / esta e futuras).
+
+### Exclusão em modo edição
+
+Ao clicar em **Excluir** numa tarefa com `series_id`, abrir o `AlertDialog` existente com três opções: Apenas esta · Esta e futuras · Cancelar.
+
+### Fora do escopo (por ora)
+
+- Recorrência "no último dia útil do mês" e regras RRULE complexas — só o subconjunto acima.
+- Edição retroativa (alterar ocorrências já passadas).
+
+### Perguntas antes de eu confirmar
+
+1. Para "Personalizada", basta `a cada N dias/semanas/meses`, ou você quer também múltiplos dias da semana (ex.: seg+qua+sex)?
+2. Sem data de término, o default de **3 meses à frente** está bom, ou prefere 6 meses / 1 ano?
+3. Confirma que cada ocorrência deve ser uma linha real de tarefa (aparece e move-se no calendário independente), e não uma "tarefa-mãe" expandida virtualmente?

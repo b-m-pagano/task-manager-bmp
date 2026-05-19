@@ -1,6 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { expandRecurrence, type RecurrenceRule } from "@/lib/queue/recurrence";
+
+
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -110,6 +113,14 @@ function startTsFromMinute(
   return `${day}T${h}:${m}:00${offset}`;
 }
 
+const RecurrenceSchema = z.object({
+  freq: z.enum(["daily", "weekly", "biweekly", "monthly", "custom"]),
+  interval: z.number().int().min(1).max(99).optional(),
+  unit: z.enum(["day", "week", "month"]).optional(),
+  byweekday: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+  until: z.string().regex(ISO_DATE).nullable().optional(),
+});
+
 const CreateTaskSchema = z.object({
   title: z.string().trim().min(1).max(280),
   description: z.string().max(4000).nullable().optional(),
@@ -124,13 +135,66 @@ const CreateTaskSchema = z.object({
   due_date: z.string().regex(ISO_DATE).nullable().optional(),
   inbox: z.boolean().optional(),
   tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
+  recurrence: RecurrenceSchema.nullable().optional(),
 });
+
 
 export const createTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => CreateTaskSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
+    // Recurrence branch: materialize all occurrences sharing a series_id.
+    if (data.recurrence && !data.inbox) {
+      const rule: RecurrenceRule = data.recurrence;
+      const days = expandRecurrence(data.scheduled_day, rule);
+      if (days.length === 0) throw new Error("Regra de repetição não gerou ocorrências");
+
+      // Fetch current max queue_position per day in one round-trip.
+      const { data: existing } = await supabase
+        .from("tasks")
+        .select("scheduled_day, queue_position")
+        .in("scheduled_day", days);
+      const maxByDay = new Map<string, number>();
+      for (const r of existing ?? []) {
+        const prev = maxByDay.get(r.scheduled_day) ?? -1;
+        if (r.queue_position > prev) maxByDay.set(r.scheduled_day, r.queue_position);
+      }
+
+      const seriesId = crypto.randomUUID();
+      const rows = days.map((d) => {
+        const pos = (maxByDay.get(d) ?? -1) + 1;
+        maxByDay.set(d, pos);
+        return {
+          user_id: userId,
+          title: data.title,
+          description: data.description ?? null,
+          notes: data.notes ?? null,
+          estimated_minutes: data.estimated_minutes,
+          priority: data.priority,
+          scheduled_day: d,
+          scheduled_start: startTsFromMinute(d, data.start_minute, data.tz_offset_minutes),
+          queue_position: pos,
+          category_id: data.category_id ?? null,
+          project_id: data.project_id ?? null,
+          parent_id: data.parent_id ?? null,
+          due_date: data.due_date ?? null,
+          is_inbox: false,
+          series_id: seriesId,
+          recurrence_rule: JSON.stringify(rule),
+          recurrence_end_date: rule.until ?? null,
+        };
+      });
+
+      const { data: inserted, error } = await supabase
+        .from("tasks")
+        .insert(rows as never)
+        .select();
+      if (error) throw error;
+      return { series_id: seriesId, count: inserted?.length ?? 0, first: inserted?.[0] ?? null };
+    }
+
     const { data: maxRow } = await supabase
       .from("tasks")
       .select("queue_position")
@@ -165,6 +229,7 @@ export const createTask = createServerFn({ method: "POST" })
     if (error) throw error;
     return row;
   });
+
 
 const UpdateTaskSchema = z.object({
   id: z.string().uuid(),
@@ -464,6 +529,67 @@ export const scheduleFromInbox = createServerFn({ method: "POST" })
         queue_position: nextPos,
       } as never)
       .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RECURRENCE SERIES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const deleteSeries = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        series_id: z.string().uuid(),
+        from_date: z.string().regex(ISO_DATE).nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    let q = supabase
+      .from("tasks")
+      .delete()
+      .eq("series_id", data.series_id)
+      .eq("user_id", userId);
+    if (data.from_date) q = q.gte("scheduled_day", data.from_date);
+    const { error } = await q;
+    if (error) throw error;
+    return { ok: true };
+  });
+
+const UpdateSeriesPatch = z.object({
+  title: z.string().trim().min(1).max(280).optional(),
+  description: z.string().max(4000).nullable().optional(),
+  notes: z.string().max(10_000).nullable().optional(),
+  estimated_minutes: z.number().int().min(5).max(720).optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+  category_id: z.string().uuid().nullable().optional(),
+  project_id: z.string().uuid().nullable().optional(),
+});
+
+export const updateSeries = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        series_id: z.string().uuid(),
+        from_date: z.string().regex(ISO_DATE).nullable().optional(),
+        patch: UpdateSeriesPatch,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    let q = supabase
+      .from("tasks")
+      .update(data.patch as never)
+      .eq("series_id", data.series_id)
+      .eq("user_id", userId);
+    if (data.from_date) q = q.gte("scheduled_day", data.from_date);
+    const { error } = await q;
     if (error) throw error;
     return { ok: true };
   });

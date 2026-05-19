@@ -39,11 +39,14 @@ import {
   deleteTask,
   duplicateTask,
   sendToInbox,
+  deleteSeries,
 } from "@/lib/tasks.functions";
 import { getLocalTzOffsetMinutes } from "@/lib/timezone";
+import { defaultUntilFor, type RecurrenceRule, type RecurrenceFreq, type CustomUnit } from "@/lib/queue/recurrence";
 import { SubtaskList } from "./subtask-list";
 import { EntityPicker } from "./entity-picker";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Repeat } from "lucide-react";
+
 
 type Priority = "low" | "medium" | "high" | "urgent";
 type Status = "pending" | "in_progress" | "done" | "skipped";
@@ -73,7 +76,9 @@ export interface TaskDialogTask {
   scheduled_start: string | null;
   due_date: string | null;
   parent_id: string | null;
+  series_id?: string | null;
 }
+
 
 interface TaskDialogProps {
   open: boolean;
@@ -120,8 +125,10 @@ export function TaskDialog({
   const createFn = useServerFn(createTask);
   const updateFn = useServerFn(updateTask);
   const deleteFn = useServerFn(deleteTask);
+  const deleteSeriesFn = useServerFn(deleteSeries);
   const duplicateFn = useServerFn(duplicateTask);
   const inboxFn = useServerFn(sendToInbox);
+
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -135,6 +142,14 @@ export function TaskDialog({
   const [startTime, setStartTime] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Recurrence (create-mode only)
+  const [recFreq, setRecFreq] = useState<"none" | RecurrenceFreq>("none");
+  const [recInterval, setRecInterval] = useState(1);
+  const [recUnit, setRecUnit] = useState<CustomUnit>("week");
+  const [recWeekdays, setRecWeekdays] = useState<number[]>([]);
+  const [recUntil, setRecUntil] = useState("");
+
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -163,8 +178,36 @@ export function TaskDialog({
       setDay(defaultDay);
       setStartTime(minuteToHHMM(defaultStartMinute ?? null));
       setDueDate("");
+      setRecFreq("none");
+      setRecInterval(1);
+      setRecUnit("week");
+      setRecWeekdays([]);
+      setRecUntil("");
     }
   }, [open, task, defaultDay, defaultStartMinute]);
+
+  const recurrencePayload = (): RecurrenceRule | null => {
+    if (recFreq === "none") return null;
+    const until = recUntil || defaultUntilFor(day);
+    if (recFreq === "custom") {
+      return {
+        freq: "custom",
+        interval: recInterval,
+        unit: recUnit,
+        byweekday: recUnit === "week" && recWeekdays.length ? recWeekdays : undefined,
+        until,
+      };
+    }
+    if (recFreq === "weekly" || recFreq === "biweekly") {
+      return {
+        freq: recFreq,
+        byweekday: recWeekdays.length ? recWeekdays : undefined,
+        until,
+      };
+    }
+    return { freq: recFreq, until };
+  };
+
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -185,7 +228,7 @@ export function TaskDialog({
       if (isEdit && task) {
         return updateFn({ data: { id: task.id, ...common, status } });
       }
-      return createFn({ data: common });
+      return createFn({ data: { ...common, recurrence: recurrencePayload() } });
     },
     onSuccess: () => {
       toast.success(isEdit ? "Tarefa atualizada" : "Tarefa criada");
@@ -196,15 +239,27 @@ export function TaskDialog({
   });
 
   const deleteMut = useMutation({
-    mutationFn: () => deleteFn({ data: { id: task!.id } }),
+    mutationFn: async (scope: "single" | "future" | "all") => {
+      if (scope !== "single" && task?.series_id) {
+        await deleteSeriesFn({
+          data: {
+            series_id: task.series_id,
+            from_date: scope === "future" ? task.scheduled_day : null,
+          },
+        });
+        return;
+      }
+      await deleteFn({ data: { id: task!.id } });
+    },
     onSuccess: () => {
-      toast.success("Tarefa excluída");
+      toast.success("Excluído");
       qc.invalidateQueries({ queryKey: ["week"] });
       setConfirmDelete(false);
       onOpenChange(false);
     },
     onError: (err) => toast.error("Falha ao excluir", { description: String(err) }),
   });
+
 
   const duplicateMut = useMutation({
     mutationFn: () => duplicateFn({ data: { id: task!.id } }),
@@ -420,6 +475,117 @@ export function TaskDialog({
               </div>
             </div>
 
+            {!isEdit && (
+              <div className="grid gap-2 rounded-md border border-dashed p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-1.5 text-sm">
+                    <Repeat className="h-3.5 w-3.5" /> Repetir
+                  </Label>
+                  <Select value={recFreq} onValueChange={(v) => setRecFreq(v as typeof recFreq)}>
+                    <SelectTrigger className="h-8 w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Não repetir</SelectItem>
+                      <SelectItem value="daily">Diária</SelectItem>
+                      <SelectItem value="weekly">Semanal</SelectItem>
+                      <SelectItem value="biweekly">Quinzenal</SelectItem>
+                      <SelectItem value="monthly">Mensal</SelectItem>
+                      <SelectItem value="custom">Personalizada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {recFreq !== "none" && (
+                  <>
+                    {recFreq === "custom" && (
+                      <div className="flex items-end gap-2">
+                        <div className="grid gap-1">
+                          <Label className="text-xs">A cada</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            value={recInterval}
+                            onChange={(e) => setRecInterval(Math.max(1, Number(e.target.value) || 1))}
+                            className="h-9 w-20"
+                          />
+                        </div>
+                        <Select value={recUnit} onValueChange={(v) => setRecUnit(v as CustomUnit)}>
+                          <SelectTrigger className="h-9 w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day">dia(s)</SelectItem>
+                            <SelectItem value="week">semana(s)</SelectItem>
+                            <SelectItem value="month">mês(es)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {(recFreq === "weekly" ||
+                      recFreq === "biweekly" ||
+                      (recFreq === "custom" && recUnit === "week")) && (
+                      <div className="grid gap-1">
+                        <Label className="text-xs">Dias da semana (opcional)</Label>
+                        <div className="flex gap-1">
+                          {["D", "S", "T", "Q", "Q", "S", "S"].map((lbl, i) => {
+                            const active = recWeekdays.includes(i);
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() =>
+                                  setRecWeekdays((prev) =>
+                                    prev.includes(i)
+                                      ? prev.filter((x) => x !== i)
+                                      : [...prev, i],
+                                  )
+                                }
+                                className={`h-8 w-8 rounded-md border text-xs ${
+                                  active
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-input bg-background"
+                                }`}
+                              >
+                                {lbl}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid gap-1">
+                      <Label htmlFor="t-rec-until" className="text-xs">
+                        Termina em
+                      </Label>
+                      <Input
+                        id="t-rec-until"
+                        type="date"
+                        value={recUntil}
+                        min={day}
+                        onChange={(e) => setRecUntil(e.target.value)}
+                        placeholder={defaultUntilFor(day)}
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Padrão: 3 meses a partir do dia ({defaultUntilFor(day)}). Máx. 365 ocorrências.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {isEdit && task?.series_id && (
+              <div className="flex items-center gap-2 rounded-md border border-dashed bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                <Repeat className="h-3.5 w-3.5" />
+                Parte de uma série recorrente. Edições aqui afetam apenas esta ocorrência.
+              </div>
+            )}
+
+
             {isEdit && task && (
               <div className="grid gap-1.5">
                 <Label>Subtarefas</Label>
@@ -501,22 +667,50 @@ export function TaskDialog({
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir tarefa?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {task?.series_id ? "Excluir tarefa recorrente?" : "Excluir tarefa?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Subtarefas associadas permanecerão (sem pai).
+              {task?.series_id
+                ? "Esta tarefa faz parte de uma série recorrente. Escolha o escopo da exclusão."
+                : "Esta ação não pode ser desfeita. Subtarefas associadas permanecerão (sem pai)."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteMut.mutate()}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
+            {task?.series_id ? (
+              <>
+                <AlertDialogAction
+                  onClick={() => deleteMut.mutate("single")}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Apenas esta
+                </AlertDialogAction>
+                <AlertDialogAction
+                  onClick={() => deleteMut.mutate("future")}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Esta e futuras
+                </AlertDialogAction>
+                <AlertDialogAction
+                  onClick={() => deleteMut.mutate("all")}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Toda a série
+                </AlertDialogAction>
+              </>
+            ) : (
+              <AlertDialogAction
+                onClick={() => deleteMut.mutate("single")}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </>
   );
 }

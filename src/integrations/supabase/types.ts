@@ -184,10 +184,12 @@ export type Database = {
           project_id: string | null
           queue_position: number
           quick_note: string | null
+          recurrence_end_date: string | null
           recurrence_rule: string | null
           scheduled_day: string
           scheduled_end: string | null
           scheduled_start: string | null
+          series_id: string | null
           status: Database["public"]["Enums"]["task_status"]
           tags: string[]
           title: string
@@ -213,10 +215,12 @@ export type Database = {
           project_id?: string | null
           queue_position?: number
           quick_note?: string | null
+          recurrence_end_date?: string | null
           recurrence_rule?: string | null
           scheduled_day?: string
           scheduled_end?: string | null
           scheduled_start?: string | null
+          series_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tags?: string[]
           title: string
@@ -242,10 +246,12 @@ export type Database = {
           project_id?: string | null
           queue_position?: number
           quick_note?: string | null
+          recurrence_end_date?: string | null
           recurrence_rule?: string | null
           scheduled_day?: string
           scheduled_end?: string | null
           scheduled_start?: string | null
+          series_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tags?: string[]
           title?: string
