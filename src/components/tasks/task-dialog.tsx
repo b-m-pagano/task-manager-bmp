@@ -76,7 +76,9 @@ export interface TaskDialogTask {
   scheduled_start: string | null;
   due_date: string | null;
   parent_id: string | null;
+  series_id?: string | null;
 }
+
 
 interface TaskDialogProps {
   open: boolean;
