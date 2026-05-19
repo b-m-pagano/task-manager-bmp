@@ -113,6 +113,14 @@ function startTsFromMinute(
   return `${day}T${h}:${m}:00${offset}`;
 }
 
+const RecurrenceSchema = z.object({
+  freq: z.enum(["daily", "weekly", "biweekly", "monthly", "custom"]),
+  interval: z.number().int().min(1).max(99).optional(),
+  unit: z.enum(["day", "week", "month"]).optional(),
+  byweekday: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+  until: z.string().regex(ISO_DATE).nullable().optional(),
+});
+
 const CreateTaskSchema = z.object({
   title: z.string().trim().min(1).max(280),
   description: z.string().max(4000).nullable().optional(),
@@ -127,7 +135,9 @@ const CreateTaskSchema = z.object({
   due_date: z.string().regex(ISO_DATE).nullable().optional(),
   inbox: z.boolean().optional(),
   tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
+  recurrence: RecurrenceSchema.nullable().optional(),
 });
+
 
 export const createTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
