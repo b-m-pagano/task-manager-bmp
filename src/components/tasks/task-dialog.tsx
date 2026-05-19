@@ -39,11 +39,14 @@ import {
   deleteTask,
   duplicateTask,
   sendToInbox,
+  deleteSeries,
 } from "@/lib/tasks.functions";
 import { getLocalTzOffsetMinutes } from "@/lib/timezone";
+import { defaultUntilFor, type RecurrenceRule, type RecurrenceFreq, type CustomUnit } from "@/lib/queue/recurrence";
 import { SubtaskList } from "./subtask-list";
 import { EntityPicker } from "./entity-picker";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Repeat } from "lucide-react";
+
 
 type Priority = "low" | "medium" | "high" | "urgent";
 type Status = "pending" | "in_progress" | "done" | "skipped";
