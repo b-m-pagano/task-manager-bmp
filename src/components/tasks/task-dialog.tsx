@@ -178,8 +178,36 @@ export function TaskDialog({
       setDay(defaultDay);
       setStartTime(minuteToHHMM(defaultStartMinute ?? null));
       setDueDate("");
+      setRecFreq("none");
+      setRecInterval(1);
+      setRecUnit("week");
+      setRecWeekdays([]);
+      setRecUntil("");
     }
   }, [open, task, defaultDay, defaultStartMinute]);
+
+  const recurrencePayload = (): RecurrenceRule | null => {
+    if (recFreq === "none") return null;
+    const until = recUntil || defaultUntilFor(day);
+    if (recFreq === "custom") {
+      return {
+        freq: "custom",
+        interval: recInterval,
+        unit: recUnit,
+        byweekday: recUnit === "week" && recWeekdays.length ? recWeekdays : undefined,
+        until,
+      };
+    }
+    if (recFreq === "weekly" || recFreq === "biweekly") {
+      return {
+        freq: recFreq,
+        byweekday: recWeekdays.length ? recWeekdays : undefined,
+        until,
+      };
+    }
+    return { freq: recFreq, until };
+  };
+
 
   const saveMut = useMutation({
     mutationFn: async () => {
