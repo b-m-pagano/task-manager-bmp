@@ -140,7 +140,7 @@ export function DraggableTask({
         )}
         style={wrapperStyle}
       >
-        <EventCard event={event} category={category} project={project} onToggleStatus={onToggleStatus} isTogglingStatus={isTogglingStatus} />
+        <EventCard event={event} category={category} project={project} onToggleStatus={onToggleStatus} isTogglingStatus={isTogglingStatus} laneIndex={laneIndex} laneCount={laneCount} />
       </div>
     </>
   );
