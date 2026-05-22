@@ -1,56 +1,68 @@
-## Tarefas recorrentes
+# Aba "Tarefas" — lista universal com histórico e filtros
 
-Adicionar repetição (diária, semanal, quinzenal, mensal, personalizada) com data de término opcional.
+Hoje a rota `/app/tasks` é apenas um placeholder. Vou transformá-la numa central de tarefas com histórico das concluídas, lista das pendentes e filtros combináveis.
 
-### Decisões-chave
+## O que vai aparecer na tela
 
-- **Materialização**: na hora de salvar, geramos as N ocorrências como linhas reais em `tasks`, todas marcadas com um `series_id` comum. Vantagem: cada ocorrência aparece no calendário, pode ser arrastada, concluída e editada individualmente, sem mudar o motor de agendamento atual.
-- **Limite de segurança**: até 365 ocorrências ou a data de término (o que vier primeiro). Sem data de término, exigimos no mínimo uma — default sugerido: 3 meses à frente.
-- **Edição de série**: ao editar/excluir uma ocorrência, perguntamos "Apenas esta" ou "Esta e futuras" (padrão: apenas esta).
+Cabeçalho com 3 abas:
+- **A fazer** — tarefas com `status` pendente/em andamento (sem `completed_at`)
+- **Concluídas** — tarefas com `completed_at` preenchido (histórico)
+- **Todas** — união das duas
 
-### Banco (migração)
+Logo abaixo, uma barra de filtros (todos combináveis, com chips mostrando o que está ativo e botão "Limpar"):
+- **Busca** por título / descrição
+- **Categoria** (multi-seleção, com as categorias do usuário)
+- **Projeto** (multi-seleção, inclui opção "Sem projeto")
+- **Prioridade** (baixa / média / alta)
+- **Data de criação** — intervalo (de / até)
+- **Data de conclusão** — intervalo (de / até) — só faz sentido nas abas Concluídas / Todas
+- **Data agendada (`scheduled_day`)** — intervalo, útil para "a fazer"
 
-- `tasks.series_id uuid null` + índice
-- `tasks.recurrence_rule` (já existe `text`) passa a guardar JSON estruturado:
-  ```json
-  { "freq": "daily|weekly|biweekly|monthly|custom",
-    "interval": 1, "byweekday": [1,3,5], "until": "2026-12-31", "count": null }
-  ```
-- `tasks.recurrence_end_date date null` (espelho de `until` para queries rápidas)
+Resultado renderizado como lista compacta agrupada por dia (da data relevante para a aba: agendada nas pendentes, conclusão nas concluídas). Cada linha mostra título, categoria (bolinha colorida), projeto, duração estimada e, quando concluída, data/hora de conclusão. Clicar abre o `TaskDialog` existente para editar.
 
-### Backend (`src/lib/tasks.functions.ts`)
+Paginação simples: carrega 50 por vez com botão "Carregar mais" (Supabase tem teto de 1000 por query).
 
-- Estender `CreateTaskSchema` com bloco opcional `recurrence`.
-- Novo helper `expandRecurrence(start, rule)` em `src/lib/queue/recurrence.ts` que retorna a lista de datas.
-- Em `createTask`: se `recurrence` presente, gerar todas as ocorrências em uma única `insert` em lote, compartilhando `series_id = gen_random_uuid()`.
-- Novas server fns:
-  - `updateSeries({ series_id, from_date, patch })` — edita esta e futuras
-  - `deleteSeries({ series_id, from_date })` — exclui esta e futuras
+## Backend
 
-### UI (`src/components/tasks/task-dialog.tsx`)
-
-Novo bloco "Repetição" (colapsado por padrão):
+Nova server function `listTasks` em `src/lib/tasks.functions.ts`:
 
 ```text
-[ Repetir ▾ ]  Não repetir | Diária | Semanal | Quinzenal | Mensal | Personalizada
-   ├─ (se Semanal/Personalizada) dias da semana: S T Q Q S S D
-   ├─ (se Personalizada) "A cada [N] [dias|semanas|meses]"
-   └─ Termina em: [ date ]   (default: +3 meses)
+input: {
+  scope: "todo" | "done" | "all",
+  search?: string,
+  categoryIds?: string[],
+  projectIds?: string[],           // "none" representa sem projeto
+  priorities?: ("low"|"medium"|"high")[],
+  createdFrom?: string, createdTo?: string,
+  completedFrom?: string, completedTo?: string,
+  scheduledFrom?: string, scheduledTo?: string,
+  limit?: number, offset?: number,
+}
+output: { tasks: Task[], total: number }
 ```
 
-Mostrado apenas em modo "criar". Em modo "editar", se a tarefa pertence a uma série, exibimos um rótulo "Parte de uma série recorrente" + botão "Editar série" que abre o diálogo de escopo (apenas esta / esta e futuras).
+- Usa `requireSupabaseAuth` (RLS já protege os dados do usuário).
+- Faz `select` em `tasks` com os filtros traduzidos para `.eq/.in/.gte/.lte/.is/.ilike`.
+- Ordenação: pendentes por `scheduled_day asc, queue_position asc`; concluídas por `completed_at desc`.
+- Reaproveita `listCategoriesProjects` (ou similar já existente) para popular os selects de filtro — se não existir um endpoint, crio um pequeno `listFilterOptions`.
 
-### Exclusão em modo edição
+Nenhuma mudança de schema. Nenhuma migração necessária — `completed_at`, `created_at`, `category_id`, `project_id` já existem.
 
-Ao clicar em **Excluir** numa tarefa com `series_id`, abrir o `AlertDialog` existente com três opções: Apenas esta · Esta e futuras · Cancelar.
+## Frontend
 
-### Fora do escopo (por ora)
+- Reescrever `src/routes/_authenticated/app.tasks.tsx` com a UI descrita, usando TanStack Query (`useQuery` com `queryKey` incluindo os filtros).
+- Novos componentes em `src/components/tasks/`:
+  - `task-list.tsx` — lista agrupada por dia
+  - `task-filters.tsx` — barra de filtros (popover de Categoria/Projeto multi-select, date range pickers, busca)
+- Date range usando `Calendar` em `mode="range"` dentro de Popover (padrão shadcn já presente).
+- Estado dos filtros sincronizado com a URL (search params) para que recarregar/preservar links funcione.
+- Ao concluir/editar/excluir uma tarefa pela lista, invalidar `["tasks", "list"]` e os caches da semana/mês.
 
-- Recorrência "no último dia útil do mês" e regras RRULE complexas — só o subconjunto acima.
-- Edição retroativa (alterar ocorrências já passadas).
+## Fora de escopo
 
-### Perguntas antes de eu confirmar
+- Exportação CSV do histórico
+- Estatísticas/gráficos (tempo médio, taxa de conclusão)
+- Edição em lote
+- Filtros por tags (campo `tags[]` existe, mas hoje a UI ainda não popula consistentemente — pode entrar numa próxima iteração se quiser)
 
-1. Para "Personalizada", basta `a cada N dias/semanas/meses`, ou você quer também múltiplos dias da semana (ex.: seg+qua+sex)?
-2. Sem data de término, o default de **3 meses à frente** está bom, ou prefere 6 meses / 1 ano?
-3. Confirma que cada ocorrência deve ser uma linha real de tarefa (aparece e move-se no calendário independente), e não uma "tarefa-mãe" expandida virtualmente?
+Se quiser ajustar algo (incluir tags nos filtros, mudar agrupamento, etc.), me diga; senão, sigo com essa implementação.
