@@ -44,6 +44,8 @@ export function DraggableTask({
   onToggleStatus,
   isTogglingStatus,
   columnRefs,
+  laneIndex,
+  laneCount,
 }: Props) {
   const [dragging, setDragging] = React.useState(false);
   const [ghost, setGhost] = React.useState<{ dx: number; dy: number } | null>(null);
