@@ -58,8 +58,8 @@ export function EventCard({ event, category, project, onToggleStatus, isToggling
   if (event.external) {
     return (
       <div
-        className="absolute inset-x-1 overflow-hidden rounded-md border border-dashed border-event-foreground/30 bg-event/70 px-2 py-1 text-[10px] text-event-foreground backdrop-blur-sm"
-        style={{ top, height }}
+        className="absolute overflow-hidden rounded-md border border-dashed border-event-foreground/30 bg-event/70 px-2 py-1 text-[10px] text-event-foreground backdrop-blur-sm"
+        style={{ top, height, ...laneStyle }}
       >
         <p className="truncate font-medium">{event.title}</p>
         <p className="mt-0.5 tabular-nums opacity-70">
