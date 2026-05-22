@@ -17,7 +17,7 @@ export const DAY_END_HOUR = 24;
 export const WORK_START_HOUR = 7;
 export const WORK_END_HOUR = 18;
 
-export const PX_PER_HOUR = 44;
+export const PX_PER_HOUR = 60;
 export const PX_PER_MIN = PX_PER_HOUR / 60;
 export const TOTAL_HOURS = DAY_END_HOUR - DAY_START_HOUR;
 export const GRID_HEIGHT = TOTAL_HOURS * PX_PER_HOUR;
