@@ -47,7 +47,7 @@ export const listWeekData = createServerFn({ method: "POST" })
       settings:
         settingsRes.data ?? {
           user_id: context.userId,
-          day_start_minute: 480,
+          day_start_minute: 420,
           after_hours_minute: 1080,
           buffer_minutes: 5,
           carry_unfinished: true,

@@ -14,7 +14,7 @@ export const DAY_END_HOUR = 24;
 
 // Functional work zone — used for highlighting and as the default
 // scheduling anchor (see `WORK_START_HOUR` consumers).
-export const WORK_START_HOUR = 8;
+export const WORK_START_HOUR = 7;
 export const WORK_END_HOUR = 18;
 
 export const PX_PER_HOUR = 44;
