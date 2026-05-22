@@ -31,6 +31,8 @@ interface Props {
   isTogglingStatus?: boolean;
   /** Map of day iso → column element, used to resolve cross-column drops. */
   columnRefs: React.MutableRefObject<Record<string, HTMLElement | null>>;
+  laneIndex?: number;
+  laneCount?: number;
 }
 
 export function DraggableTask({
