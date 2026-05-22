@@ -40,11 +40,18 @@ function fmt(minute: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export function EventCard({ event, category, project, onToggleStatus, isTogglingStatus }: EventCardProps) {
+export function EventCard({ event, category, project, onToggleStatus, isTogglingStatus, laneIndex = 0, laneCount = 1 }: EventCardProps) {
   const top = minuteToTop(event.startMinute);
-  const height = Math.max(28, event.durationMinutes * PX_PER_MIN - 2);
+  const height = Math.max(18, event.durationMinutes * PX_PER_MIN - 2);
   const compact = height < 44;
   const isDone = event.status === "done";
+  const laneStyle: React.CSSProperties =
+    laneCount > 1
+      ? {
+          left: `calc(${(laneIndex / laneCount) * 100}% + 2px)`,
+          width: `calc(${100 / laneCount}% - 4px)`,
+        }
+      : { left: 4, right: 4 };
 
   const tint = category?.color ?? "oklch(0.7 0.05 260)";
 
