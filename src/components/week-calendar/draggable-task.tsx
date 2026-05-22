@@ -31,6 +31,8 @@ interface Props {
   isTogglingStatus?: boolean;
   /** Map of day iso → column element, used to resolve cross-column drops. */
   columnRefs: React.MutableRefObject<Record<string, HTMLElement | null>>;
+  laneIndex?: number;
+  laneCount?: number;
 }
 
 export function DraggableTask({
@@ -42,6 +44,8 @@ export function DraggableTask({
   onToggleStatus,
   isTogglingStatus,
   columnRefs,
+  laneIndex,
+  laneCount,
 }: Props) {
   const [dragging, setDragging] = React.useState(false);
   const [ghost, setGhost] = React.useState<{ dx: number; dy: number } | null>(null);
@@ -136,7 +140,7 @@ export function DraggableTask({
         )}
         style={wrapperStyle}
       >
-        <EventCard event={event} category={category} project={project} onToggleStatus={onToggleStatus} isTogglingStatus={isTogglingStatus} />
+        <EventCard event={event} category={category} project={project} onToggleStatus={onToggleStatus} isTogglingStatus={isTogglingStatus} laneIndex={laneIndex} laneCount={laneCount} />
       </div>
     </>
   );

@@ -605,7 +605,78 @@ function WeekPage() {
                   (e: any) => (e.starts_at ?? "").slice(0, 10) === iso,
                 );
 
-                let stack = WORK_START_HOUR * 60; // for tasks without a time
+                // Compute start/duration for each item (tasks + external events),
+                // then assign lanes for overlapping items.
+                let stack = WORK_START_HOUR * 60;
+                type Item =
+                  | { kind: "task"; task: RawTask; start: number; duration: number }
+                  | { kind: "event"; event: any; start: number; duration: number };
+                const items: Item[] = [];
+                for (const t of dayTasks) {
+                  const startMin = tsToMinute(t.scheduled_start, stack);
+                  if (!t.scheduled_start) stack = startMin + t.estimated_minutes;
+                  items.push({ kind: "task", task: t, start: startMin, duration: t.estimated_minutes });
+                }
+                for (const e of dayEvents as any[]) {
+                  const startD = new Date(e.starts_at);
+                  const endD = new Date(e.ends_at);
+                  const dur = Math.max(15, Math.round((endD.getTime() - startD.getTime()) / 60000));
+                  items.push({
+                    kind: "event",
+                    event: e,
+                    start: startD.getHours() * 60 + startD.getMinutes(),
+                    duration: dur,
+                  });
+                }
+                // Sort by start asc, longer first to keep stable lane assignment.
+                items.sort((a, b) => a.start - b.start || b.duration - a.duration);
+
+                // Sweep lanes: each lane keeps its current end minute.
+                const laneEnds: number[] = [];
+                const itemLane = new Map<Item, number>();
+                for (const it of items) {
+                  let placed = -1;
+                  for (let i = 0; i < laneEnds.length; i++) {
+                    if (laneEnds[i] <= it.start) {
+                      placed = i;
+                      break;
+                    }
+                  }
+                  if (placed === -1) {
+                    placed = laneEnds.length;
+                    laneEnds.push(0);
+                  }
+                  laneEnds[placed] = it.start + it.duration;
+                  itemLane.set(it, placed);
+                }
+                // Cluster lane counts: items that overlap transitively share laneCount.
+                const sortedByStart = [...items].sort((a, b) => a.start - b.start);
+                const clusterCount = new Map<Item, number>();
+                let cluster: Item[] = [];
+                let clusterEnd = -1;
+                const flush = () => {
+                  if (cluster.length === 0) return;
+                  const maxLane = cluster.reduce(
+                    (m, x) => Math.max(m, itemLane.get(x) ?? 0),
+                    0,
+                  );
+                  const count = maxLane + 1;
+                  for (const x of cluster) clusterCount.set(x, count);
+                  cluster = [];
+                  clusterEnd = -1;
+                };
+                for (const it of sortedByStart) {
+                  if (cluster.length === 0 || it.start < clusterEnd) {
+                    cluster.push(it);
+                    clusterEnd = Math.max(clusterEnd, it.start + it.duration);
+                  } else {
+                    flush();
+                    cluster.push(it);
+                    clusterEnd = it.start + it.duration;
+                  }
+                }
+                flush();
+
                 return (
                   <DayColumnGrid
                     key={iso}
@@ -622,34 +693,31 @@ function WeekPage() {
                       className="absolute inset-0 cursor-cell"
                       aria-label={`Adicionar tarefa em ${iso}`}
                     />
-                    {dayEvents.map((e: any) => {
-                      const startD = new Date(e.starts_at);
-                      const endD = new Date(e.ends_at);
-                      const dur = Math.max(
-                        15,
-                        Math.round((endD.getTime() - startD.getTime()) / 60000),
-                      );
-                      const startMin = startD.getHours() * 60 + startD.getMinutes();
-                      return (
-                        <EventCard
-                          key={e.id}
-                          event={{
-                            id: e.id,
-                            title: e.title,
-                            day: iso,
-                            startMinute: startMin,
-                            durationMinutes: dur,
-                            categoryId: "",
-                            status: "pending",
-                            priority: "medium",
-                            external: true,
-                          }}
-                        />
-                      );
-                    })}
-                    {dayTasks.map((t) => {
-                      const startMin = tsToMinute(t.scheduled_start, stack);
-                      if (!t.scheduled_start) stack = startMin + t.estimated_minutes;
+                    {items.map((it) => {
+                      const laneIndex = itemLane.get(it) ?? 0;
+                      const laneCount = clusterCount.get(it) ?? 1;
+                      if (it.kind === "event") {
+                        const e = it.event;
+                        return (
+                          <EventCard
+                            key={e.id}
+                            event={{
+                              id: e.id,
+                              title: e.title,
+                              day: iso,
+                              startMinute: it.start,
+                              durationMinutes: it.duration,
+                              categoryId: "",
+                              status: "pending",
+                              priority: "medium",
+                              external: true,
+                            }}
+                            laneIndex={laneIndex}
+                            laneCount={laneCount}
+                          />
+                        );
+                      }
+                      const t = it.task;
                       const cat = t.category_id ? categoryById[t.category_id] : undefined;
                       const proj = t.project_id ? projectById[t.project_id] : undefined;
                       return (
@@ -659,7 +727,7 @@ function WeekPage() {
                             id: t.id,
                             title: t.title,
                             day: iso,
-                            startMinute: startMin,
+                            startMinute: it.start,
                             durationMinutes: t.estimated_minutes,
                             categoryId: t.category_id ?? "",
                             projectId: t.project_id ?? undefined,
@@ -669,6 +737,8 @@ function WeekPage() {
                           category={cat}
                           project={proj}
                           columnRefs={columnRefs}
+                          laneIndex={laneIndex}
+                          laneCount={laneCount}
                           onClick={() => openEditById(t.id)}
                           onDrop={(d) => handleDrop(t.id, d)}
                           onToggleStatus={() =>
@@ -687,6 +757,7 @@ function WeekPage() {
                   </DayColumnGrid>
                 );
               })}
+
             </div>
             {isLoading && (
               <div className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs text-muted-foreground">

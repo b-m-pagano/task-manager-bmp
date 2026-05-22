@@ -10,6 +10,8 @@ interface EventCardProps {
   project?: MockProject;
   onToggleStatus?: () => void;
   isTogglingStatus?: boolean;
+  laneIndex?: number;
+  laneCount?: number;
 }
 
 const priorityRing: Record<MockEvent["priority"], string> = {
@@ -38,19 +40,26 @@ function fmt(minute: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export function EventCard({ event, category, project, onToggleStatus, isTogglingStatus }: EventCardProps) {
+export function EventCard({ event, category, project, onToggleStatus, isTogglingStatus, laneIndex = 0, laneCount = 1 }: EventCardProps) {
   const top = minuteToTop(event.startMinute);
-  const height = Math.max(28, event.durationMinutes * PX_PER_MIN - 2);
+  const height = Math.max(18, event.durationMinutes * PX_PER_MIN - 2);
   const compact = height < 44;
   const isDone = event.status === "done";
+  const laneStyle: React.CSSProperties =
+    laneCount > 1
+      ? {
+          left: `calc(${(laneIndex / laneCount) * 100}% + 2px)`,
+          width: `calc(${100 / laneCount}% - 4px)`,
+        }
+      : { left: 4, right: 4 };
 
   const tint = category?.color ?? "oklch(0.7 0.05 260)";
 
   if (event.external) {
     return (
       <div
-        className="absolute inset-x-1 overflow-hidden rounded-md border border-dashed border-event-foreground/30 bg-event/70 px-2 py-1 text-[10px] text-event-foreground backdrop-blur-sm"
-        style={{ top, height }}
+        className="absolute overflow-hidden rounded-md border border-dashed border-event-foreground/30 bg-event/70 px-2 py-1 text-[10px] text-event-foreground backdrop-blur-sm"
+        style={{ top, height, ...laneStyle }}
       >
         <p className="truncate font-medium">{event.title}</p>
         <p className="mt-0.5 tabular-nums opacity-70">
@@ -72,7 +81,7 @@ export function EventCard({ event, category, project, onToggleStatus, isToggling
   return (
     <div
       className={cn(
-        "group absolute inset-x-1 flex flex-col overflow-hidden rounded-md border border-border bg-card text-[11px] shadow-sm transition-[box-shadow,transform,top,height] duration-200 ease-out hover:z-10 hover:shadow-md",
+        "group absolute flex flex-col overflow-hidden rounded-md border border-border bg-card text-[11px] shadow-sm transition-[box-shadow,transform,top,height] duration-200 ease-out hover:z-10 hover:shadow-md",
         isDone && "opacity-55",
         isAfterHours && "ring-1 ring-after-hours/60",
         priorityRing[event.priority],
@@ -80,6 +89,7 @@ export function EventCard({ event, category, project, onToggleStatus, isToggling
       style={{
         top,
         height,
+        ...laneStyle,
         backgroundColor: isDone
           ? undefined
           : `color-mix(in oklab, ${tint} 10%, var(--card))`,
