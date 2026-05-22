@@ -10,6 +10,8 @@ interface EventCardProps {
   project?: MockProject;
   onToggleStatus?: () => void;
   isTogglingStatus?: boolean;
+  laneIndex?: number;
+  laneCount?: number;
 }
 
 const priorityRing: Record<MockEvent["priority"], string> = {
