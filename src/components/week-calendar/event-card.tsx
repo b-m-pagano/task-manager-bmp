@@ -81,7 +81,7 @@ export function EventCard({ event, category, project, onToggleStatus, isToggling
   return (
     <div
       className={cn(
-        "group absolute inset-x-1 flex flex-col overflow-hidden rounded-md border border-border bg-card text-[11px] shadow-sm transition-[box-shadow,transform,top,height] duration-200 ease-out hover:z-10 hover:shadow-md",
+        "group absolute flex flex-col overflow-hidden rounded-md border border-border bg-card text-[11px] shadow-sm transition-[box-shadow,transform,top,height] duration-200 ease-out hover:z-10 hover:shadow-md",
         isDone && "opacity-55",
         isAfterHours && "ring-1 ring-after-hours/60",
         priorityRing[event.priority],
@@ -89,6 +89,7 @@ export function EventCard({ event, category, project, onToggleStatus, isToggling
       style={{
         top,
         height,
+        ...laneStyle,
         backgroundColor: isDone
           ? undefined
           : `color-mix(in oklab, ${tint} 10%, var(--card))`,
