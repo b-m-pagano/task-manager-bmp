@@ -593,3 +593,90 @@ export const updateSeries = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LIST (universal tasks listing with filters)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ListTasksSchema = z.object({
+  scope: z.enum(["todo", "done", "all"]).default("todo"),
+  search: z.string().trim().max(200).optional(),
+  categoryIds: z.array(z.string()).optional(),
+  projectIds: z.array(z.string()).optional(),
+  priorities: z.array(z.enum(["low", "medium", "high", "urgent"])).optional(),
+  createdFrom: z.string().regex(ISO_DATE).optional(),
+  createdTo: z.string().regex(ISO_DATE).optional(),
+  completedFrom: z.string().regex(ISO_DATE).optional(),
+  completedTo: z.string().regex(ISO_DATE).optional(),
+  scheduledFrom: z.string().regex(ISO_DATE).optional(),
+  scheduledTo: z.string().regex(ISO_DATE).optional(),
+  limit: z.number().int().min(1).max(200).default(50),
+  offset: z.number().int().min(0).default(0),
+});
+
+export const listTasks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => ListTasksSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    let q = supabase
+      .from("tasks")
+      .select("*", { count: "exact" })
+      .eq("is_inbox", false)
+      .is("parent_id", null);
+
+    if (data.scope === "todo") q = q.is("completed_at", null);
+    else if (data.scope === "done") q = q.not("completed_at", "is", null);
+
+    if (data.search) {
+      const s = data.search.replace(/[%_]/g, "\\$&");
+      q = q.or(`title.ilike.%${s}%,description.ilike.%${s}%`);
+    }
+
+    if (data.categoryIds?.length) {
+      const hasNone = data.categoryIds.includes("none");
+      const real = data.categoryIds.filter((c) => c !== "none");
+      if (hasNone && real.length === 0) q = q.is("category_id", null);
+      else if (hasNone) q = q.or(`category_id.is.null,category_id.in.(${real.join(",")})`);
+      else q = q.in("category_id", real);
+    }
+    if (data.projectIds?.length) {
+      const hasNone = data.projectIds.includes("none");
+      const real = data.projectIds.filter((c) => c !== "none");
+      if (hasNone && real.length === 0) q = q.is("project_id", null);
+      else if (hasNone) q = q.or(`project_id.is.null,project_id.in.(${real.join(",")})`);
+      else q = q.in("project_id", real);
+    }
+    if (data.priorities?.length) q = q.in("priority", data.priorities);
+
+    if (data.createdFrom) q = q.gte("created_at", `${data.createdFrom}T00:00:00`);
+    if (data.createdTo) q = q.lte("created_at", `${data.createdTo}T23:59:59`);
+    if (data.completedFrom) q = q.gte("completed_at", `${data.completedFrom}T00:00:00`);
+    if (data.completedTo) q = q.lte("completed_at", `${data.completedTo}T23:59:59`);
+    if (data.scheduledFrom) q = q.gte("scheduled_day", data.scheduledFrom);
+    if (data.scheduledTo) q = q.lte("scheduled_day", data.scheduledTo);
+
+    if (data.scope === "done") {
+      q = q.order("completed_at", { ascending: false });
+    } else {
+      q = q
+        .order("scheduled_day", { ascending: true })
+        .order("queue_position", { ascending: true });
+    }
+    q = q.range(data.offset, data.offset + data.limit - 1);
+
+    const { data: rows, error, count } = await q;
+    if (error) throw error;
+
+    const [catsRes, projectsRes] = await Promise.all([
+      supabase.from("categories").select("*").order("sort_order"),
+      supabase.from("projects").select("*").order("sort_order"),
+    ]);
+
+    return {
+      tasks: rows ?? [],
+      total: count ?? 0,
+      categories: catsRes.data ?? [],
+      projects: projectsRes.data ?? [],
+    };
+  });
