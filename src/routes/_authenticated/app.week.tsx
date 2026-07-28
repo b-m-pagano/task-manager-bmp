@@ -602,7 +602,7 @@ function WeekPage() {
                   (t) => (t as RawTask).scheduled_day === iso && !(t as RawTask).parent_id,
                 ) as RawTask[];
                 const dayEvents = (data?.events ?? []).filter(
-                  (e: any) => (e.starts_at ?? "").slice(0, 10) === iso,
+                  (e: any) => !e.all_day && (e.starts_at ?? "").slice(0, 10) === iso,
                 );
 
                 // Compute start/duration for each item (tasks + external events),
@@ -620,11 +620,13 @@ function WeekPage() {
                 for (const e of dayEvents as any[]) {
                   const startD = new Date(e.starts_at);
                   const endD = new Date(e.ends_at);
-                  const dur = Math.max(15, Math.round((endD.getTime() - startD.getTime()) / 60000));
+                  const startMin = startD.getHours() * 60 + startD.getMinutes();
+                  const rawDur = Math.max(15, Math.round((endD.getTime() - startD.getTime()) / 60000));
+                  const dur = Math.min(rawDur, 24 * 60 - startMin);
                   items.push({
                     kind: "event",
                     event: e,
-                    start: startD.getHours() * 60 + startD.getMinutes(),
+                    start: startMin,
                     duration: dur,
                   });
                 }
