@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 import {
   CalendarIcon,
   Check,
@@ -95,10 +96,11 @@ function TasksPage() {
   const total = data?.total ?? 0;
 
   const grouped = useMemo(() => {
-    const dateField = filters.scope === "done" ? "completed_at" : "scheduled_day";
+    const dateField: "completed_at" | "scheduled_day" =
+      filters.scope === "done" ? "completed_at" : "scheduled_day";
     const map = new Map<string, typeof tasks>();
     for (const t of tasks) {
-      const raw = (t as any)[dateField];
+      const raw = t[dateField];
       const key = raw ? String(raw).slice(0, 10) : "—";
       if (!map.has(key)) map.set(key, [] as typeof tasks);
       map.get(key)!.push(t);
@@ -118,7 +120,7 @@ function TasksPage() {
     setFilters({ ...initialFilters, scope: filters.scope, search: filters.search });
   }
 
-  function openTask(t: any) {
+  function openTask(t: (typeof tasks)[number]) {
     setEditing({
       id: t.id,
       title: t.title,
@@ -170,7 +172,7 @@ function TasksPage() {
             label="Categoria"
             options={[
               { id: "none", name: "Sem categoria", color: "#94a3b8" },
-              ...categories.map((c: any) => ({ id: c.id, name: c.name, color: c.color })),
+              ...categories.map((c) => ({ id: c.id, name: c.name, color: c.color })),
             ]}
             selected={filters.categoryIds}
             onChange={(ids) => setFilters((f) => ({ ...f, categoryIds: ids }))}
@@ -180,7 +182,7 @@ function TasksPage() {
             label="Projeto"
             options={[
               { id: "none", name: "Sem projeto", color: "#94a3b8" },
-              ...projects.map((p: any) => ({ id: p.id, name: p.name, color: p.color })),
+              ...projects.map((p) => ({ id: p.id, name: p.name, color: p.color })),
             ]}
             selected={filters.projectIds}
             onChange={(ids) => setFilters((f) => ({ ...f, projectIds: ids }))}
@@ -250,9 +252,9 @@ function TasksPage() {
                   {formatGroupDay(day)}
                 </div>
                 <ul className="space-y-1">
-                  {items.map((t: any) => {
-                    const cat = categories.find((c: any) => c.id === t.category_id);
-                    const proj = projects.find((p: any) => p.id === t.project_id);
+                  {items.map((t) => {
+                    const cat = categories.find((c) => c.id === t.category_id);
+                    const proj = projects.find((p) => p.id === t.project_id);
                     const done = !!t.completed_at;
                     return (
                       <li key={t.id}>
@@ -330,8 +332,8 @@ function TasksPage() {
         }}
         task={editing}
         defaultDay={new Date().toISOString().slice(0, 10)}
-        categories={categories as any}
-        projects={projects as any}
+        categories={categories}
+        projects={projects}
       />
     </div>
   );
@@ -434,7 +436,7 @@ function DateRangeFilter({
   onChange: (from?: string, to?: string) => void;
 }) {
   const active = !!(from || to);
-  const range = {
+  const range: DateRange = {
     from: from ? parseISO(from) : undefined,
     to: to ? parseISO(to) : undefined,
   };
@@ -456,8 +458,8 @@ function DateRangeFilter({
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="range"
-          selected={range as any}
-          onSelect={(r: any) => {
+          selected={range}
+          onSelect={(r) => {
             onChange(
               r?.from ? format(r.from, "yyyy-MM-dd") : undefined,
               r?.to ? format(r.to, "yyyy-MM-dd") : undefined,

@@ -107,6 +107,7 @@ function TodayPage() {
     queryKey,
     queryFn: () => listFn({ data: { days: [today] } }),
   });
+  type WeekData = NonNullable<typeof data>;
 
   const tasks = useMemo(() => {
     const all = ((data?.tasks ?? []) as Task[]).filter(
@@ -116,7 +117,7 @@ function TodayPage() {
   }, [data, today]);
 
   const blockers = useMemo<Block[]>(() => {
-    return ((data?.events ?? []) as any[])
+    return (data?.events ?? [])
       .filter((e) => (e.starts_at ?? "").slice(0, 10) === today)
       .map((e) => {
         const s = new Date(e.starts_at);
@@ -146,12 +147,12 @@ function TodayPage() {
       updateFn({ data: { id: v.id, status: v.status } }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey });
-      const prev = qc.getQueryData<any>(queryKey);
-      qc.setQueryData(queryKey, (old: any) => {
+      const prev = qc.getQueryData<WeekData>(queryKey);
+      qc.setQueryData(queryKey, (old: WeekData | undefined) => {
         if (!old) return old;
         return {
           ...old,
-          tasks: old.tasks.map((t: Task) => (t.id === v.id ? { ...t, status: v.status } : t)),
+          tasks: old.tasks.map((t) => (t.id === v.id ? { ...t, status: v.status } : t)),
         };
       });
       return { prev };
@@ -169,19 +170,19 @@ function TodayPage() {
   const assignMut = useMutation({
     mutationFn: (v: { id: string; field: "category_id" | "project_id"; value: string | null }) =>
       updateFn({
-        data: {
-          id: v.id,
-          [v.field]: v.value,
-        } as any,
+        data:
+          v.field === "category_id"
+            ? { id: v.id, category_id: v.value }
+            : { id: v.id, project_id: v.value },
       }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey });
-      const prev = qc.getQueryData<any>(queryKey);
-      qc.setQueryData(queryKey, (old: any) => {
+      const prev = qc.getQueryData<WeekData>(queryKey);
+      qc.setQueryData(queryKey, (old: WeekData | undefined) => {
         if (!old) return old;
         return {
           ...old,
-          tasks: old.tasks.map((t: Task) => (t.id === v.id ? { ...t, [v.field]: v.value } : t)),
+          tasks: old.tasks.map((t) => (t.id === v.id ? { ...t, [v.field]: v.value } : t)),
         };
       });
       return { prev };
@@ -208,8 +209,9 @@ function TodayPage() {
           tz_offset_minutes: getLocalTzOffsetMinutes(),
         },
       }),
-    onError: (_e, _v, ctx: any) => {
-      if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev);
+    onError: (_e, _v, ctx) => {
+      const prev = (ctx as { prev?: unknown } | undefined)?.prev;
+      if (prev !== undefined) qc.setQueryData(queryKey, prev);
       toast.error("Não foi possível reordenar");
     },
     onSettled: () => {
@@ -231,13 +233,13 @@ function TodayPage() {
     const placements = packSequential(current, blockers);
 
     // Optimistic patch
-    const prev = qc.getQueryData<any>(queryKey);
-    qc.setQueryData(queryKey, (old: any) => {
+    const prev = qc.getQueryData<WeekData>(queryKey);
+    qc.setQueryData(queryKey, (old: WeekData | undefined) => {
       if (!old) return old;
       const startMap = new Map(placements.map((p) => [p.id, p.start]));
       return {
         ...old,
-        tasks: old.tasks.map((t: Task) => {
+        tasks: old.tasks.map((t) => {
           const newStart = startMap.get(t.id);
           if (newStart == null) return t;
           const h = String(Math.floor(newStart / 60)).padStart(2, "0");
@@ -249,7 +251,7 @@ function TodayPage() {
 
     reorderMut.mutate(
       placements.map((p) => ({ id: p.id, start_minute: p.start })),
-      { onError: () => qc.setQueryData(queryKey, prev) } as any,
+      { onError: () => qc.setQueryData(queryKey, prev) },
     );
 
     const overflow = placements.find(

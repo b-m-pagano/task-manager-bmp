@@ -17,7 +17,7 @@ function CategoriesPage() {
     <div className="p-8">
       <h1 className="text-base font-semibold">Categorias</h1>
       <ul className="mt-4 space-y-2">
-        {(data ?? []).map((c: any) => (
+        {(data ?? []).map((c) => (
           <li
             key={c.id}
             className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-sm"

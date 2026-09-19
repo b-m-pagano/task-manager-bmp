@@ -99,6 +99,8 @@ function WeekPage() {
     queryKey: ["week", daysISO[0]],
     queryFn: () => listFn({ data: { days: daysISO } }),
   });
+  type WeekData = NonNullable<typeof data>;
+  type CalendarEventRow = WeekData["events"][number];
 
   const columnRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -118,8 +120,8 @@ function WeekPage() {
       updateFn({ data: { id: v.id, status: v.status } }),
     onMutate: async (v) => {
       await qc.cancelQueries({ queryKey: ["week", daysISO[0]] });
-      const prev = qc.getQueryData<any>(["week", daysISO[0]]);
-      qc.setQueryData(["week", daysISO[0]], (old: any) => {
+      const prev = qc.getQueryData<WeekData>(["week", daysISO[0]]);
+      qc.setQueryData(["week", daysISO[0]], (old: WeekData | undefined) => {
         if (!old) return old;
         return {
           ...old,
@@ -190,8 +192,8 @@ function WeekPage() {
         (t) => (t.scheduled_day === targetDay || t.id === taskId) && !t.parent_id,
       );
       const targetEvents: ReflowBlock[] = (data?.events ?? [])
-        .filter((e: any) => (e.starts_at ?? "").slice(0, 10) === targetDay)
-        .map((e: any) => {
+        .filter((e) => (e.starts_at ?? "").slice(0, 10) === targetDay)
+        .map((e) => {
           const s = new Date(e.starts_at);
           const en = new Date(e.ends_at);
           return {
@@ -227,11 +229,11 @@ function WeekPage() {
       }));
 
       // Optimistic patch of cached week data.
-      qc.setQueryData(["week", daysISO[0]], (prev: any) => {
+      qc.setQueryData(["week", daysISO[0]], (prev: WeekData | undefined) => {
         if (!prev) return prev;
         return {
           ...prev,
-          tasks: prev.tasks.map((t: RawTask) => {
+          tasks: prev.tasks.map((t) => {
             const upd = updates.find((u) => u.id === t.id);
             if (!upd) return t;
             const h = String(Math.floor(upd.start_minute / 60)).padStart(2, "0");
@@ -281,8 +283,8 @@ function WeekPage() {
       );
       if (dayTasks.length === 0) continue;
       const dayEvents: ReflowBlock[] = (fresh.events ?? [])
-        .filter((e: any) => (e.starts_at ?? "").slice(0, 10) === iso)
-        .map((e: any) => {
+        .filter((e) => (e.starts_at ?? "").slice(0, 10) === iso)
+        .map((e) => {
           const s = new Date(e.starts_at);
           const en = new Date(e.ends_at);
           return {
@@ -326,7 +328,7 @@ function WeekPage() {
         toast.info("Nada para replanejar nesse dia");
         return;
       }
-      const dayEvents: AutoBlock[] = ((data?.events ?? []) as any[])
+      const dayEvents: AutoBlock[] = (data?.events ?? [])
         .filter((e) => (e.starts_at ?? "").slice(0, 10) === iso)
         .map((e) => {
           const s = new Date(e.starts_at);
@@ -361,11 +363,11 @@ function WeekPage() {
         start_minute: p.start,
       }));
 
-      qc.setQueryData(["week", daysISO[0]], (prev: any) => {
+      qc.setQueryData(["week", daysISO[0]], (prev: WeekData | undefined) => {
         if (!prev) return prev;
         return {
           ...prev,
-          tasks: prev.tasks.map((t: RawTask) => {
+          tasks: prev.tasks.map((t) => {
             const upd = updates.find((u) => u.id === t.id);
             if (!upd) return t;
             const h = String(Math.floor(upd.start_minute / 60)).padStart(2, "0");
@@ -521,13 +523,13 @@ function WeekPage() {
           onReplanDay={replanDay}
           onApplySuggestion={(taskId, day, startMinute) => {
             const update = { id: taskId, scheduled_day: day, start_minute: startMinute };
-            qc.setQueryData(["week", daysISO[0]], (prev: any) => {
+            qc.setQueryData(["week", daysISO[0]], (prev: WeekData | undefined) => {
               if (!prev) return prev;
               const h = String(Math.floor(startMinute / 60)).padStart(2, "0");
               const m = String(startMinute % 60).padStart(2, "0");
               return {
                 ...prev,
-                tasks: prev.tasks.map((t: RawTask) =>
+                tasks: prev.tasks.map((t) =>
                   t.id === taskId
                     ? { ...t, scheduled_day: day, scheduled_start: `${day}T${h}:${m}:00` }
                     : t,
@@ -583,7 +585,7 @@ function WeekPage() {
                   (t) => (t as RawTask).scheduled_day === iso && !(t as RawTask).parent_id,
                 ) as RawTask[];
                 const dayEvents = (data?.events ?? []).filter(
-                  (e: any) => !e.all_day && (e.starts_at ?? "").slice(0, 10) === iso,
+                  (e) => !e.all_day && (e.starts_at ?? "").slice(0, 10) === iso,
                 );
 
                 // Compute start/duration for each item (tasks + external events),
@@ -591,7 +593,7 @@ function WeekPage() {
                 let stack = WORK_START_HOUR * 60;
                 type Item =
                   | { kind: "task"; task: RawTask; start: number; duration: number }
-                  | { kind: "event"; event: any; start: number; duration: number };
+                  | { kind: "event"; event: CalendarEventRow; start: number; duration: number };
                 const items: Item[] = [];
                 for (const t of dayTasks) {
                   const startMin = tsToMinute(t.scheduled_start, stack);
@@ -603,7 +605,7 @@ function WeekPage() {
                     duration: t.estimated_minutes,
                   });
                 }
-                for (const e of dayEvents as any[]) {
+                for (const e of dayEvents) {
                   const startD = new Date(e.starts_at);
                   const endD = new Date(e.ends_at);
                   const startMin = startD.getHours() * 60 + startD.getMinutes();

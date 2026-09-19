@@ -2,6 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { expandRecurrence, type RecurrenceRule } from "@/lib/queue/recurrence";
+import type { Database } from "@/integrations/supabase/types";
+
+type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
+type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -250,7 +254,7 @@ export const updateTask = createServerFn({ method: "POST" })
   .inputValidator((input) => UpdateTaskSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { id, start_minute, scheduled_day, tz_offset_minutes, ...rest } = data;
-    const patch: Record<string, any> = { ...rest };
+    const patch: TaskUpdate = { ...rest };
     if (scheduled_day !== undefined) patch.scheduled_day = scheduled_day;
     if (start_minute !== undefined) {
       const day = scheduled_day ?? null;
@@ -308,7 +312,13 @@ export const duplicateTask = createServerFn({ method: "POST" })
       .maybeSingle();
     const nextPos = (maxRow?.queue_position ?? -1) + 1;
 
-    const { id: _drop, created_at: _c, updated_at: _u, completed_at: _cc, ...rest } = src as any;
+    const {
+      id: _drop,
+      created_at: _c,
+      updated_at: _u,
+      completed_at: _cc,
+      ...rest
+    } = src as TaskRow;
     const { data: row, error } = await supabase
       .from("tasks")
       .insert({
