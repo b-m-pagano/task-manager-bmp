@@ -1,8 +1,4 @@
-import { useEffect, useState } from "react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
-import { Copy, Inbox, Trash2, Loader2 } from "lucide-react";
+import { Copy, Inbox, Trash2, Loader2, ChevronDown, Repeat } from "lucide-react";
 
 import {
   Dialog,
@@ -11,16 +7,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,27 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import {
-  createTask,
-  updateTask,
-  deleteTask,
-  duplicateTask,
-  sendToInbox,
-  deleteSeries,
-} from "@/lib/tasks.functions";
-import { getLocalTzOffsetMinutes } from "@/lib/timezone";
-import {
-  defaultUntilFor,
-  type RecurrenceRule,
-  type RecurrenceFreq,
-  type CustomUnit,
-} from "@/lib/queue/recurrence";
 import { SubtaskList } from "./subtask-list";
 import { EntityPicker } from "./entity-picker";
-import { ChevronDown, Repeat } from "lucide-react";
+import { RecurrenceFields } from "./recurrence-fields";
+import { DeleteTaskDialog } from "./delete-task-dialog";
+import { useTaskDialogForm } from "./use-task-dialog-form";
 
-type Priority = "low" | "medium" | "high" | "urgent";
-type Status = "pending" | "in_progress" | "done" | "skipped";
+export type Priority = "low" | "medium" | "high" | "urgent";
+export type Status = "pending" | "in_progress" | "done" | "skipped";
 
 interface Category {
   id: string;
@@ -96,23 +69,6 @@ interface TaskDialogProps {
   onOpenSubtask?: (id: string) => void;
 }
 
-function minuteToHHMM(m: number | null | undefined): string {
-  if (m == null) return "";
-  const h = String(Math.floor(m / 60)).padStart(2, "0");
-  const mm = String(m % 60).padStart(2, "0");
-  return `${h}:${mm}`;
-}
-function hhmmToMinute(s: string): number | null {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(s);
-  if (!m) return null;
-  return Number(m[1]) * 60 + Number(m[2]);
-}
-function tsToMinute(ts: string | null): number | null {
-  if (!ts) return null;
-  const d = new Date(ts);
-  return d.getHours() * 60 + d.getMinutes();
-}
-
 export function TaskDialog({
   open,
   onOpenChange,
@@ -123,176 +79,8 @@ export function TaskDialog({
   projects,
   onOpenSubtask,
 }: TaskDialogProps) {
-  const isEdit = !!task;
-  const qc = useQueryClient();
-  const createFn = useServerFn(createTask);
-  const updateFn = useServerFn(updateTask);
-  const deleteFn = useServerFn(deleteTask);
-  const deleteSeriesFn = useServerFn(deleteSeries);
-  const duplicateFn = useServerFn(duplicateTask);
-  const inboxFn = useServerFn(sendToInbox);
-
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [notes, setNotes] = useState("");
-  const [categoryId, setCategoryId] = useState<string>("none");
-  const [projectId, setProjectId] = useState<string>("none");
-  const [duration, setDuration] = useState(30);
-  const [priority, setPriority] = useState<Priority>("medium");
-  const [status, setStatus] = useState<Status>("pending");
-  const [day, setDay] = useState(defaultDay);
-  const [startTime, setStartTime] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(false);
-
-  // Recurrence (create-mode only)
-  const [recFreq, setRecFreq] = useState<"none" | RecurrenceFreq>("none");
-  const [recInterval, setRecInterval] = useState(1);
-  const [recUnit, setRecUnit] = useState<CustomUnit>("week");
-  const [recWeekdays, setRecWeekdays] = useState<number[]>([]);
-  const [recUntil, setRecUntil] = useState("");
-
-  // Reset state when dialog opens
-  useEffect(() => {
-    if (!open) return;
-    if (task) {
-      setTitle(task.title);
-      setDescription(task.description ?? "");
-      setNotes(task.notes ?? "");
-      setCategoryId(task.category_id ?? "none");
-      setProjectId(task.project_id ?? "none");
-      setDuration(task.estimated_minutes);
-      setPriority(task.priority);
-      setStatus(task.status);
-      setDay(task.scheduled_day);
-      setStartTime(minuteToHHMM(tsToMinute(task.scheduled_start)));
-      setDueDate(task.due_date ?? "");
-    } else {
-      setTitle("");
-      setDescription("");
-      setNotes("");
-      setCategoryId("none");
-      setProjectId("none");
-      setDuration(30);
-      setPriority("medium");
-      setStatus("pending");
-      setDay(defaultDay);
-      setStartTime(minuteToHHMM(defaultStartMinute ?? null));
-      setDueDate("");
-      setRecFreq("none");
-      setRecInterval(1);
-      setRecUnit("week");
-      setRecWeekdays([]);
-      setRecUntil("");
-    }
-  }, [open, task, defaultDay, defaultStartMinute]);
-
-  const recurrencePayload = (): RecurrenceRule | null => {
-    if (recFreq === "none") return null;
-    const until = recUntil || defaultUntilFor(day);
-    if (recFreq === "custom") {
-      return {
-        freq: "custom",
-        interval: recInterval,
-        unit: recUnit,
-        byweekday: recUnit === "week" && recWeekdays.length ? recWeekdays : undefined,
-        until,
-      };
-    }
-    if (recFreq === "weekly" || recFreq === "biweekly") {
-      return {
-        freq: recFreq,
-        byweekday: recWeekdays.length ? recWeekdays : undefined,
-        until,
-      };
-    }
-    return { freq: recFreq, until };
-  };
-
-  const saveMut = useMutation({
-    mutationFn: async () => {
-      const start_minute = hhmmToMinute(startTime);
-      const common = {
-        title: title.trim(),
-        description: description.trim() || null,
-        notes: notes.trim() || null,
-        estimated_minutes: duration,
-        priority,
-        scheduled_day: day,
-        start_minute,
-        category_id: categoryId === "none" ? null : categoryId,
-        project_id: projectId === "none" ? null : projectId,
-        due_date: dueDate || null,
-        tz_offset_minutes: getLocalTzOffsetMinutes(),
-      };
-      if (isEdit && task) {
-        return updateFn({ data: { id: task.id, ...common, status } });
-      }
-      return createFn({ data: { ...common, recurrence: recurrencePayload() } });
-    },
-    onSuccess: () => {
-      toast.success(isEdit ? "Tarefa atualizada" : "Tarefa criada");
-      qc.invalidateQueries({ queryKey: ["week"] });
-      onOpenChange(false);
-    },
-    onError: (err) => toast.error("Falha ao salvar", { description: String(err) }),
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: async (scope: "single" | "future" | "all") => {
-      if (scope !== "single" && task?.series_id) {
-        await deleteSeriesFn({
-          data: {
-            series_id: task.series_id,
-            from_date: scope === "future" ? task.scheduled_day : null,
-          },
-        });
-        return;
-      }
-      await deleteFn({ data: { id: task!.id } });
-    },
-    onSuccess: () => {
-      toast.success("Excluído");
-      qc.invalidateQueries({ queryKey: ["week"] });
-      setConfirmDelete(false);
-      onOpenChange(false);
-    },
-    onError: (err) => toast.error("Falha ao excluir", { description: String(err) }),
-  });
-
-  const duplicateMut = useMutation({
-    mutationFn: () => duplicateFn({ data: { id: task!.id } }),
-    onSuccess: () => {
-      toast.success("Tarefa duplicada");
-      qc.invalidateQueries({ queryKey: ["week"] });
-      onOpenChange(false);
-    },
-    onError: (err) => toast.error("Falha ao duplicar", { description: String(err) }),
-  });
-
-  const moveInboxMut = useMutation({
-    mutationFn: () => inboxFn({ data: { id: task!.id } }),
-    onSuccess: () => {
-      toast.success("Movida para Inbox");
-      qc.invalidateQueries({ queryKey: ["week"] });
-      qc.invalidateQueries({ queryKey: ["inbox"] });
-      onOpenChange(false);
-    },
-    onError: (err) => toast.error("Falha ao mover", { description: String(err) }),
-  });
-
-  // Cmd/Ctrl+Enter to save
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        e.preventDefault();
-        if (title.trim()) saveMut.mutate();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, title, saveMut]);
+  const f = useTaskDialogForm({ open, task, defaultDay, defaultStartMinute, onOpenChange });
+  const isEdit = f.isEdit;
 
   return (
     <>
@@ -307,8 +95,8 @@ export function TaskDialog({
               <Label htmlFor="t-title">Título *</Label>
               <Input
                 id="t-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                value={f.title}
+                onChange={(e) => f.setTitle(e.target.value)}
                 placeholder="O que precisa ser feito?"
                 autoFocus
                 maxLength={280}
@@ -319,8 +107,8 @@ export function TaskDialog({
               <Label htmlFor="t-desc">Descrição</Label>
               <Textarea
                 id="t-desc"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={f.description}
+                onChange={(e) => f.setDescription(e.target.value)}
                 placeholder="Contexto, links, requisitos…"
                 rows={2}
                 maxLength={4000}
@@ -333,8 +121,8 @@ export function TaskDialog({
                 <Label>Categoria</Label>
                 <EntityPicker
                   kind="category"
-                  value={categoryId === "none" ? null : categoryId}
-                  onChange={(id) => setCategoryId(id ?? "none")}
+                  value={f.categoryId === "none" ? null : f.categoryId}
+                  onChange={(id) => f.setCategoryId(id ?? "none")}
                   options={categories}
                   trigger={
                     <Button
@@ -344,7 +132,7 @@ export function TaskDialog({
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         {(() => {
-                          const c = categories.find((x) => x.id === categoryId);
+                          const c = categories.find((x) => x.id === f.categoryId);
                           return c ? (
                             <>
                               <span
@@ -367,8 +155,8 @@ export function TaskDialog({
                 <Label>Projeto</Label>
                 <EntityPicker
                   kind="project"
-                  value={projectId === "none" ? null : projectId}
-                  onChange={(id) => setProjectId(id ?? "none")}
+                  value={f.projectId === "none" ? null : f.projectId}
+                  onChange={(id) => f.setProjectId(id ?? "none")}
                   options={projects}
                   trigger={
                     <Button
@@ -378,7 +166,7 @@ export function TaskDialog({
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         {(() => {
-                          const p = projects.find((x) => x.id === projectId);
+                          const p = projects.find((x) => x.id === f.projectId);
                           return p ? (
                             <>
                               <span
@@ -405,13 +193,13 @@ export function TaskDialog({
                   min={5}
                   max={720}
                   step={5}
-                  value={duration}
-                  onChange={(e) => setDuration(Number(e.target.value) || 30)}
+                  value={f.duration}
+                  onChange={(e) => f.setDuration(Number(e.target.value) || 30)}
                 />
               </div>
               <div className="grid gap-1">
                 <Label>Prioridade</Label>
-                <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+                <Select value={f.priority} onValueChange={(v) => f.setPriority(v as Priority)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -426,7 +214,7 @@ export function TaskDialog({
               {isEdit && (
                 <div className="grid gap-1">
                   <Label>Status</Label>
-                  <Select value={status} onValueChange={(v) => setStatus(v as Status)}>
+                  <Select value={f.status} onValueChange={(v) => f.setStatus(v as Status)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -447,8 +235,8 @@ export function TaskDialog({
                 <Input
                   id="t-day"
                   type="date"
-                  value={day}
-                  onChange={(e) => setDay(e.target.value)}
+                  value={f.day}
+                  onChange={(e) => f.setDay(e.target.value)}
                 />
               </div>
               <div className="grid gap-1">
@@ -456,8 +244,8 @@ export function TaskDialog({
                 <Input
                   id="t-start"
                   type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
+                  value={f.startTime}
+                  onChange={(e) => f.setStartTime(e.target.value)}
                 />
               </div>
               <div className="grid gap-1">
@@ -465,114 +253,26 @@ export function TaskDialog({
                 <Input
                   id="t-due"
                   type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
+                  value={f.dueDate}
+                  onChange={(e) => f.setDueDate(e.target.value)}
                 />
               </div>
             </div>
 
             {!isEdit && (
-              <div className="grid gap-2 rounded-md border border-dashed p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="flex items-center gap-1.5 text-sm">
-                    <Repeat className="h-3.5 w-3.5" /> Repetir
-                  </Label>
-                  <Select value={recFreq} onValueChange={(v) => setRecFreq(v as typeof recFreq)}>
-                    <SelectTrigger className="h-8 w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Não repetir</SelectItem>
-                      <SelectItem value="daily">Diária</SelectItem>
-                      <SelectItem value="weekly">Semanal</SelectItem>
-                      <SelectItem value="biweekly">Quinzenal</SelectItem>
-                      <SelectItem value="monthly">Mensal</SelectItem>
-                      <SelectItem value="custom">Personalizada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {recFreq !== "none" && (
-                  <>
-                    {recFreq === "custom" && (
-                      <div className="flex items-end gap-2">
-                        <div className="grid gap-1">
-                          <Label className="text-xs">A cada</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            max={99}
-                            value={recInterval}
-                            onChange={(e) =>
-                              setRecInterval(Math.max(1, Number(e.target.value) || 1))
-                            }
-                            className="h-9 w-20"
-                          />
-                        </div>
-                        <Select value={recUnit} onValueChange={(v) => setRecUnit(v as CustomUnit)}>
-                          <SelectTrigger className="h-9 w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="day">dia(s)</SelectItem>
-                            <SelectItem value="week">semana(s)</SelectItem>
-                            <SelectItem value="month">mês(es)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    {(recFreq === "weekly" ||
-                      recFreq === "biweekly" ||
-                      (recFreq === "custom" && recUnit === "week")) && (
-                      <div className="grid gap-1">
-                        <Label className="text-xs">Dias da semana (opcional)</Label>
-                        <div className="flex gap-1">
-                          {["D", "S", "T", "Q", "Q", "S", "S"].map((lbl, i) => {
-                            const active = recWeekdays.includes(i);
-                            return (
-                              <button
-                                key={i}
-                                type="button"
-                                onClick={() =>
-                                  setRecWeekdays((prev) =>
-                                    prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i],
-                                  )
-                                }
-                                className={`h-8 w-8 rounded-md border text-xs ${
-                                  active
-                                    ? "border-primary bg-primary text-primary-foreground"
-                                    : "border-input bg-background"
-                                }`}
-                              >
-                                {lbl}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid gap-1">
-                      <Label htmlFor="t-rec-until" className="text-xs">
-                        Termina em
-                      </Label>
-                      <Input
-                        id="t-rec-until"
-                        type="date"
-                        value={recUntil}
-                        min={day}
-                        onChange={(e) => setRecUntil(e.target.value)}
-                        placeholder={defaultUntilFor(day)}
-                      />
-                      <p className="text-[11px] text-muted-foreground">
-                        Padrão: 3 meses a partir do dia ({defaultUntilFor(day)}). Máx. 365
-                        ocorrências.
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
+              <RecurrenceFields
+                day={f.day}
+                recFreq={f.recFreq}
+                setRecFreq={f.setRecFreq}
+                recInterval={f.recInterval}
+                setRecInterval={f.setRecInterval}
+                recUnit={f.recUnit}
+                setRecUnit={f.setRecUnit}
+                recWeekdays={f.recWeekdays}
+                setRecWeekdays={f.setRecWeekdays}
+                recUntil={f.recUntil}
+                setRecUntil={f.setRecUntil}
+              />
             )}
 
             {isEdit && task?.series_id && (
@@ -597,8 +297,8 @@ export function TaskDialog({
               <Label htmlFor="t-notes">Notas</Label>
               <Textarea
                 id="t-notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                value={f.notes}
+                onChange={(e) => f.setNotes(e.target.value)}
                 placeholder="Pensamentos, lembretes, anotações livres…"
                 rows={2}
                 maxLength={10000}
@@ -614,8 +314,8 @@ export function TaskDialog({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setConfirmDelete(true)}
-                    disabled={deleteMut.isPending}
+                    onClick={() => f.setConfirmDelete(true)}
+                    disabled={f.deleteMut.isPending}
                   >
                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                     Excluir
@@ -623,8 +323,8 @@ export function TaskDialog({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => duplicateMut.mutate()}
-                    disabled={duplicateMut.isPending}
+                    onClick={() => f.duplicateMut.mutate()}
+                    disabled={f.duplicateMut.isPending}
                   >
                     <Copy className="mr-1.5 h-3.5 w-3.5" />
                     Duplicar
@@ -632,8 +332,8 @@ export function TaskDialog({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => moveInboxMut.mutate()}
-                    disabled={moveInboxMut.isPending}
+                    onClick={() => f.moveInboxMut.mutate()}
+                    disabled={f.moveInboxMut.isPending}
                     title="Remove a data e devolve à Inbox"
                   >
                     <Inbox className="mr-1.5 h-3.5 w-3.5" />
@@ -647,10 +347,10 @@ export function TaskDialog({
                 Cancelar
               </Button>
               <Button
-                onClick={() => saveMut.mutate()}
-                disabled={!title.trim() || saveMut.isPending}
+                onClick={() => f.saveMut.mutate()}
+                disabled={!f.title.trim() || f.saveMut.isPending}
               >
-                {saveMut.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                {f.saveMut.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
                 Salvar
                 <span className="ml-2 hidden text-[10px] opacity-60 sm:inline">⌘↵</span>
               </Button>
@@ -659,52 +359,12 @@ export function TaskDialog({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {task?.series_id ? "Excluir tarefa recorrente?" : "Excluir tarefa?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {task?.series_id
-                ? "Esta tarefa faz parte de uma série recorrente. Escolha o escopo da exclusão."
-                : "Esta ação não pode ser desfeita. Subtarefas associadas permanecerão (sem pai)."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            {task?.series_id ? (
-              <>
-                <AlertDialogAction
-                  onClick={() => deleteMut.mutate("single")}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Apenas esta
-                </AlertDialogAction>
-                <AlertDialogAction
-                  onClick={() => deleteMut.mutate("future")}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Esta e futuras
-                </AlertDialogAction>
-                <AlertDialogAction
-                  onClick={() => deleteMut.mutate("all")}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Toda a série
-                </AlertDialogAction>
-              </>
-            ) : (
-              <AlertDialogAction
-                onClick={() => deleteMut.mutate("single")}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Excluir
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteTaskDialog
+        open={f.confirmDelete}
+        onOpenChange={f.setConfirmDelete}
+        hasSeries={!!task?.series_id}
+        onConfirm={(scope) => f.deleteMut.mutate(scope)}
+      />
     </>
   );
 }
