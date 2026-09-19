@@ -168,6 +168,7 @@ function FocusPage() {
   const updateMut = useMutation({
     mutationFn: (vars: { id: string; status: FocusTask["status"] }) => updateFn({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["focus"] }),
+    onError: () => toast.error("Não foi possível atualizar a tarefa"),
   });
 
   const completeCurrent = useCallback(() => {

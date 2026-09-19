@@ -131,6 +131,7 @@ function InboxPage() {
       qc.invalidateQueries({ queryKey: ["inbox"] });
       toast.success("Marcada como concluída");
     },
+    onError: () => toast.error("Não foi possível concluir"),
   });
 
   const deleteMut = useMutation({
@@ -139,6 +140,7 @@ function InboxPage() {
       qc.invalidateQueries({ queryKey: ["inbox"] });
       toast.success("Excluída");
     },
+    onError: () => toast.error("Não foi possível excluir"),
   });
 
   const createMut = useMutation({

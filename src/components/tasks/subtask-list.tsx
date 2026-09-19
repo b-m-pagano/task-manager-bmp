@@ -51,6 +51,7 @@ export function SubtaskList({ parentId, parentScheduledDay, onOpenSubtask }: Sub
       qc.invalidateQueries({ queryKey: ["subtasks", parentId] });
       qc.invalidateQueries({ queryKey: ["week"] });
     },
+    onError: (err) => toast.error("Falha ao atualizar", { description: String(err) }),
   });
 
   const deleteMut = useMutation({
@@ -59,6 +60,7 @@ export function SubtaskList({ parentId, parentScheduledDay, onOpenSubtask }: Sub
       qc.invalidateQueries({ queryKey: ["subtasks", parentId] });
       qc.invalidateQueries({ queryKey: ["week"] });
     },
+    onError: (err) => toast.error("Falha ao excluir", { description: String(err) }),
   });
 
   return (
