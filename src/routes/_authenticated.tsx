@@ -4,7 +4,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
 import { useAuthReady } from "@/hooks/use-auth-ready";
-import { supabase } from "@/integrations/supabase/client";
+import { clearLocalSession } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AppShell,
@@ -18,11 +18,7 @@ function AppErrorFallback({ error }: { error: Error }) {
 
   async function handleRetry() {
     if (isAuthError) {
-      try {
-        await supabase.auth.signOut({ scope: "local" });
-      } catch {
-        /* ignore */
-      }
+      await clearLocalSession();
       router.navigate({ to: "/login" });
       return;
     }

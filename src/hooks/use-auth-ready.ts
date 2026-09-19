@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { clearLocalSession } from "@/lib/auth";
 
 export function useAuthReady() {
   const [state, setState] = useState<{ user: User | null; isReady: boolean }>({
@@ -16,11 +17,7 @@ export function useAuthReady() {
         if (cancelled) return;
         if (error) {
           // Sessão inválida/expirada: limpa o estado local para não travar a tela.
-          try {
-            await supabase.auth.signOut({ scope: "local" });
-          } catch {
-            /* ignore */
-          }
+          await clearLocalSession();
           setState({ user: null, isReady: true });
           return;
         }
