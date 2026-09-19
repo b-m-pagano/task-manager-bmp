@@ -10,10 +10,25 @@ export function useAuthReady() {
 
   useEffect(() => {
     let cancelled = false;
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      setState({ user: data.session?.user ?? null, isReady: true });
-    });
+    supabase.auth
+      .getSession()
+      .then(async ({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          // Sessão inválida/expirada: limpa o estado local para não travar a tela.
+          try {
+            await supabase.auth.signOut({ scope: "local" });
+          } catch {
+            /* ignore */
+          }
+          setState({ user: null, isReady: true });
+          return;
+        }
+        setState({ user: data.session?.user ?? null, isReady: true });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ user: null, isReady: true });
+      });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       setState({ user: session?.user ?? null, isReady: true });
     });
