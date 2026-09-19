@@ -15,7 +15,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/app/settings")({
   component: SettingsPage,
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { google?: string } => ({
     google: typeof s.google === "string" ? (s.google as string) : undefined,
   }),
 });
