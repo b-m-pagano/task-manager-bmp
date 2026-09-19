@@ -1,34 +1,34 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { minuteToTop, PX_PER_MIN } from "./time-grid";
-import type { MockCategory, MockEvent, MockProject } from "@/lib/mock/week-mock";
+import type { CalendarCategory, CalendarEvent, CalendarProject } from "./types";
 import { AlertTriangle, CheckCircle2, Circle, CircleDot, Flag, Loader2 } from "lucide-react";
 
 interface EventCardProps {
-  event: MockEvent;
-  category?: MockCategory;
-  project?: MockProject;
+  event: CalendarEvent;
+  category?: CalendarCategory;
+  project?: CalendarProject;
   onToggleStatus?: () => void;
   isTogglingStatus?: boolean;
   laneIndex?: number;
   laneCount?: number;
 }
 
-const priorityRing: Record<MockEvent["priority"], string> = {
+const priorityRing: Record<CalendarEvent["priority"], string> = {
   low: "",
   medium: "",
   high: "ring-1 ring-amber-400/40",
   urgent: "ring-1 ring-destructive/60",
 };
 
-const priorityIcon: Record<MockEvent["priority"], React.ReactNode> = {
+const priorityIcon: Record<CalendarEvent["priority"], React.ReactNode> = {
   low: null,
   medium: null,
   high: <Flag className="h-2.5 w-2.5 text-amber-500" />,
   urgent: <AlertTriangle className="h-2.5 w-2.5 text-destructive" />,
 };
 
-const statusIcon: Record<MockEvent["status"], React.ReactNode> = {
+const statusIcon: Record<CalendarEvent["status"], React.ReactNode> = {
   pending: <Circle className="h-3 w-3 text-muted-foreground/50" />,
   doing: <CircleDot className="h-3 w-3 text-primary" />,
   done: <CheckCircle2 className="h-3 w-3 text-now" />,

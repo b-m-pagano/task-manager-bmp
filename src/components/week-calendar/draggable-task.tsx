@@ -4,7 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EventCard } from "./event-card";
 import { DAY_START_HOUR, PX_PER_MIN, minuteToTop } from "./time-grid";
-import type { MockCategory, MockEvent, MockProject } from "@/lib/mock/week-mock";
+import type { CalendarCategory, CalendarEvent, CalendarProject } from "./types";
 
 const AFTER_HOURS_MIN = 18 * 60;
 
@@ -19,9 +19,9 @@ export interface DragDrop {
 }
 
 interface Props {
-  event: MockEvent;
-  category?: MockCategory;
-  project?: MockProject;
+  event: CalendarEvent;
+  category?: CalendarCategory;
+  project?: CalendarProject;
   onClick: () => void;
   /** Called once the user releases on a valid column. */
   onDrop: (d: DragDrop) => void;
