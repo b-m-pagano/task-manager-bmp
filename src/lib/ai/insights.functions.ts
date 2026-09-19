@@ -107,7 +107,7 @@ export const analyzeDay = createServerFn({ method: "POST" })
       return {
         id: t.id,
         title: t.title,
-        category: t.category_id ? catName.get(t.category_id) ?? null : null,
+        category: t.category_id ? (catName.get(t.category_id) ?? null) : null,
         priority: t.priority,
         status: t.status,
         durationMin: t.estimated_minutes ?? 30,
@@ -190,12 +190,9 @@ export const analyzeDay = createServerFn({ method: "POST" })
           risk >= 70 ? "high" : risk >= 35 ? "warn" : "info";
 
         const reasonParts: string[] = [];
-        if (predictedEnd > DAY_END)
-          reasonParts.push("ultrapassa o fim do dia útil");
-        else if (predictedEnd > AFTER_HOURS)
-          reasonParts.push("termina após 18h");
-        if (delayMinutes > 0)
-          reasonParts.push(`atraso previsto de ${delayMinutes}min`);
+        if (predictedEnd > DAY_END) reasonParts.push("ultrapassa o fim do dia útil");
+        else if (predictedEnd > AFTER_HOURS) reasonParts.push("termina após 18h");
+        if (delayMinutes > 0) reasonParts.push(`atraso previsto de ${delayMinutes}min`);
         if (t.due && t.due < day) reasonParts.push("prazo vencido");
         if (reasonParts.length === 0) reasonParts.push("dentro do esperado");
 

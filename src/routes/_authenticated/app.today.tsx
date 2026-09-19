@@ -3,23 +3,12 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { format } from "date-fns";
-import {
-  CheckCircle2,
-  Circle,
-  CircleDot,
-  GripVertical,
-  Loader2,
-  Sun,
-} from "lucide-react";
+import { CheckCircle2, Circle, CircleDot, GripVertical, Loader2, Sun } from "lucide-react";
 import { toast } from "sonner";
 
 import { TaskDialog, type TaskDialogTask } from "@/components/tasks/task-dialog";
 import { EntityPicker, type Entity } from "@/components/tasks/entity-picker";
-import {
-  listWeekData,
-  rescheduleTasks,
-  updateTask,
-} from "@/lib/tasks.functions";
+import { listWeekData, rescheduleTasks, updateTask } from "@/lib/tasks.functions";
 import { getLocalTzOffsetMinutes } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
@@ -68,10 +57,7 @@ function fmtMin(min: number) {
  * skipping over calendar-event blockers. Completed tasks keep their start
  * (or stack at the cursor if they have none) but never push others.
  */
-function packSequential(
-  ordered: Task[],
-  blockers: Block[],
-): { id: string; start: number }[] {
+function packSequential(ordered: Task[], blockers: Block[]): { id: string; start: number }[] {
   const sorted = [...blockers].sort((a, b) => a.start - b.start);
   let cursor = WORK_START_MIN;
   const out: { id: string; start: number }[] = [];
@@ -126,9 +112,7 @@ function TodayPage() {
     const all = ((data?.tasks ?? []) as Task[]).filter(
       (t) => t.scheduled_day === today && !t.parent_id,
     );
-    return all.sort(
-      (a, b) => tsToMinute(a.scheduled_start) - tsToMinute(b.scheduled_start),
-    );
+    return all.sort((a, b) => tsToMinute(a.scheduled_start) - tsToMinute(b.scheduled_start));
   }, [data, today]);
 
   const blockers = useMemo<Block[]>(() => {
@@ -150,10 +134,7 @@ function TodayPage() {
     () => Object.fromEntries(categories.map((c) => [c.id, c])),
     [categories],
   );
-  const projectById = useMemo(
-    () => Object.fromEntries(projects.map((p) => [p.id, p])),
-    [projects],
-  );
+  const projectById = useMemo(() => Object.fromEntries(projects.map((p) => [p.id, p])), [projects]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TaskDialogTask | null>(null);
@@ -170,9 +151,7 @@ function TodayPage() {
         if (!old) return old;
         return {
           ...old,
-          tasks: old.tasks.map((t: Task) =>
-            t.id === v.id ? { ...t, status: v.status } : t,
-          ),
+          tasks: old.tasks.map((t: Task) => (t.id === v.id ? { ...t, status: v.status } : t)),
         };
       });
       return { prev };
@@ -188,11 +167,7 @@ function TodayPage() {
   });
 
   const assignMut = useMutation({
-    mutationFn: (v: {
-      id: string;
-      field: "category_id" | "project_id";
-      value: string | null;
-    }) =>
+    mutationFn: (v: { id: string; field: "category_id" | "project_id"; value: string | null }) =>
       updateFn({
         data: {
           id: v.id,
@@ -206,9 +181,7 @@ function TodayPage() {
         if (!old) return old;
         return {
           ...old,
-          tasks: old.tasks.map((t: Task) =>
-            t.id === v.id ? { ...t, [v.field]: v.value } : t,
-          ),
+          tasks: old.tasks.map((t: Task) => (t.id === v.id ? { ...t, [v.field]: v.value } : t)),
         };
       });
       return { prev };
@@ -222,7 +195,6 @@ function TodayPage() {
       qc.invalidateQueries({ queryKey: ["week"] });
     },
   });
-
 
   const reorderMut = useMutation({
     mutationFn: (updates: { id: string; start_minute: number }[]) =>
@@ -253,9 +225,7 @@ function TodayPage() {
     const srcIdx = current.findIndex((t) => t.id === srcId);
     if (srcIdx < 0) return;
     const [moved] = current.splice(srcIdx, 1);
-    const destIdx = destId
-      ? current.findIndex((t) => t.id === destId)
-      : current.length;
+    const destIdx = destId ? current.findIndex((t) => t.id === destId) : current.length;
     current.splice(destIdx < 0 ? current.length : destIdx, 0, moved);
 
     const placements = packSequential(current, blockers);
@@ -284,8 +254,7 @@ function TodayPage() {
 
     const overflow = placements.find(
       (p) =>
-        p.start + (current.find((t) => t.id === p.id)?.estimated_minutes ?? 0) >
-        AFTER_HOURS_MIN,
+        p.start + (current.find((t) => t.id === p.id)?.estimated_minutes ?? 0) > AFTER_HOURS_MIN,
     );
     if (overflow) {
       toast.warning("Fila ultrapassa 18h", {
@@ -321,16 +290,13 @@ function TodayPage() {
           <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 py-16 text-center">
             <Sun className="h-8 w-8 text-muted-foreground/40" />
             <p className="text-sm font-medium text-foreground">Nada agendado para hoje</p>
-            <p className="text-xs text-muted-foreground">
-              Use a aba Semana para agendar tarefas.
-            </p>
+            <p className="text-xs text-muted-foreground">Use a aba Semana para agendar tarefas.</p>
           </div>
         )}
 
         <ul className="flex flex-col gap-1.5">
           {tasks.map((t) => {
-            const isToggling =
-              toggleStatusMut.isPending && toggleStatusMut.variables?.id === t.id;
+            const isToggling = toggleStatusMut.isPending && toggleStatusMut.variables?.id === t.id;
             const isDone = t.status === "done";
             const cat = t.category_id ? categoryById[t.category_id] : null;
             const proj = t.project_id ? projectById[t.project_id] : null;
@@ -409,11 +375,7 @@ function TodayPage() {
                 </button>
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <button
-                    onClick={() => openEdit(t)}
-                    className="min-w-0 text-left"
-                    title="Editar"
-                  >
+                  <button onClick={() => openEdit(t)} className="min-w-0 text-left" title="Editar">
                     <p
                       className={cn(
                         "truncate text-sm font-medium",
@@ -451,7 +413,10 @@ function TodayPage() {
                         >
                           <span
                             className="h-2 w-2 rounded-sm"
-                            style={{ backgroundColor: cat?.color ?? "transparent", border: cat ? "none" : "1px dashed currentColor" }}
+                            style={{
+                              backgroundColor: cat?.color ?? "transparent",
+                              border: cat ? "none" : "1px dashed currentColor",
+                            }}
                           />
                           {cat ? cat.name : "Categoria"}
                         </button>
@@ -475,7 +440,10 @@ function TodayPage() {
                         >
                           <span
                             className="h-2 w-2 rounded-sm"
-                            style={{ backgroundColor: proj?.color ?? "transparent", border: proj ? "none" : "1px dashed currentColor" }}
+                            style={{
+                              backgroundColor: proj?.color ?? "transparent",
+                              border: proj ? "none" : "1px dashed currentColor",
+                            }}
                           />
                           {proj ? proj.name : "Projeto"}
                         </button>
@@ -512,9 +480,7 @@ function TodayPage() {
               }}
               className={cn(
                 "h-8 rounded-md border-2 border-dashed transition-colors",
-                overId === "__end__"
-                  ? "border-primary bg-primary/5"
-                  : "border-border",
+                overId === "__end__" ? "border-primary bg-primary/5" : "border-border",
               )}
             />
           )}

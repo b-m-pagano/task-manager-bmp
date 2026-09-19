@@ -30,8 +30,7 @@ const fabVariants = cva(
 );
 
 export interface FabProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof fabVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof fabVariants> {
   icon?: React.ReactNode;
   label?: string;
 }

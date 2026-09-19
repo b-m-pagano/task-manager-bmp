@@ -34,8 +34,7 @@ export const syncCalendarRange = createServerFn({ method: "POST" })
 
     // Garante access_token válido (com 60s de margem).
     let accessToken = conn.access_token ?? "";
-    const expSoon =
-      !conn.expires_at || new Date(conn.expires_at).getTime() - 60_000 < Date.now();
+    const expSoon = !conn.expires_at || new Date(conn.expires_at).getTime() - 60_000 < Date.now();
     if (!accessToken || expSoon) {
       try {
         const refreshed = await refreshAccessToken(conn.refresh_token);

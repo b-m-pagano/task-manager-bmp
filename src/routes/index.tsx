@@ -40,9 +40,9 @@ function Landing() {
           reorganizada sozinha.
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-base text-muted-foreground">
-          Compromissos do Google Calendar têm prioridade absoluta. Suas tarefas se
-          encaixam nos espaços livres e se reordenam automaticamente quando algo
-          muda. Você só decide o que vem agora.
+          Compromissos do Google Calendar têm prioridade absoluta. Suas tarefas se encaixam nos
+          espaços livres e se reordenam automaticamente quando algo muda. Você só decide o que vem
+          agora.
         </p>
 
         <Link
@@ -70,10 +70,7 @@ function Landing() {
               text: '"Revisar contrato amanhã 2h" vira tarefa pronta.',
             },
           ].map((f) => (
-            <div
-              key={f.title}
-              className="rounded-xl border border-border bg-card p-5 text-left"
-            >
+            <div key={f.title} className="rounded-xl border border-border bg-card p-5 text-left">
               <f.icon className="h-5 w-5 text-primary" />
               <h3 className="mt-3 text-sm font-semibold">{f.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{f.text}</p>

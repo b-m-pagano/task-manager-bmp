@@ -5,10 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const listProjects = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("projects")
-      .select("*")
-      .order("sort_order");
+    const { data, error } = await context.supabase.from("projects").select("*").order("sort_order");
     if (error) throw error;
     return data ?? [];
   });
@@ -65,10 +62,7 @@ export const deleteProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("projects")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await context.supabase.from("projects").delete().eq("id", data.id);
     if (error) throw error;
     return { ok: true };
   });

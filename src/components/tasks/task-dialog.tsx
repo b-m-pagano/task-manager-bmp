@@ -42,11 +42,15 @@ import {
   deleteSeries,
 } from "@/lib/tasks.functions";
 import { getLocalTzOffsetMinutes } from "@/lib/timezone";
-import { defaultUntilFor, type RecurrenceRule, type RecurrenceFreq, type CustomUnit } from "@/lib/queue/recurrence";
+import {
+  defaultUntilFor,
+  type RecurrenceRule,
+  type RecurrenceFreq,
+  type CustomUnit,
+} from "@/lib/queue/recurrence";
 import { SubtaskList } from "./subtask-list";
 import { EntityPicker } from "./entity-picker";
 import { ChevronDown, Repeat } from "lucide-react";
-
 
 type Priority = "low" | "medium" | "high" | "urgent";
 type Status = "pending" | "in_progress" | "done" | "skipped";
@@ -78,7 +82,6 @@ export interface TaskDialogTask {
   parent_id: string | null;
   series_id?: string | null;
 }
-
 
 interface TaskDialogProps {
   open: boolean;
@@ -129,7 +132,6 @@ export function TaskDialog({
   const duplicateFn = useServerFn(duplicateTask);
   const inboxFn = useServerFn(sendToInbox);
 
-
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
@@ -149,7 +151,6 @@ export function TaskDialog({
   const [recUnit, setRecUnit] = useState<CustomUnit>("week");
   const [recWeekdays, setRecWeekdays] = useState<number[]>([]);
   const [recUntil, setRecUntil] = useState("");
-
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -208,7 +209,6 @@ export function TaskDialog({
     return { freq: recFreq, until };
   };
 
-
   const saveMut = useMutation({
     mutationFn: async () => {
       const start_minute = hhmmToMinute(startTime);
@@ -259,7 +259,6 @@ export function TaskDialog({
     },
     onError: (err) => toast.error("Falha ao excluir", { description: String(err) }),
   });
-
 
   const duplicateMut = useMutation({
     mutationFn: () => duplicateFn({ data: { id: task!.id } }),
@@ -412,10 +411,7 @@ export function TaskDialog({
               </div>
               <div className="grid gap-1">
                 <Label>Prioridade</Label>
-                <Select
-                  value={priority}
-                  onValueChange={(v) => setPriority(v as Priority)}
-                >
+                <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -507,7 +503,9 @@ export function TaskDialog({
                             min={1}
                             max={99}
                             value={recInterval}
-                            onChange={(e) => setRecInterval(Math.max(1, Number(e.target.value) || 1))}
+                            onChange={(e) =>
+                              setRecInterval(Math.max(1, Number(e.target.value) || 1))
+                            }
                             className="h-9 w-20"
                           />
                         </div>
@@ -538,9 +536,7 @@ export function TaskDialog({
                                 type="button"
                                 onClick={() =>
                                   setRecWeekdays((prev) =>
-                                    prev.includes(i)
-                                      ? prev.filter((x) => x !== i)
-                                      : [...prev, i],
+                                    prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i],
                                   )
                                 }
                                 className={`h-8 w-8 rounded-md border text-xs ${
@@ -570,7 +566,8 @@ export function TaskDialog({
                         placeholder={defaultUntilFor(day)}
                       />
                       <p className="text-[11px] text-muted-foreground">
-                        Padrão: 3 meses a partir do dia ({defaultUntilFor(day)}). Máx. 365 ocorrências.
+                        Padrão: 3 meses a partir do dia ({defaultUntilFor(day)}). Máx. 365
+                        ocorrências.
                       </p>
                     </div>
                   </>
@@ -584,7 +581,6 @@ export function TaskDialog({
                 Parte de uma série recorrente. Edições aqui afetam apenas esta ocorrência.
               </div>
             )}
-
 
             {isEdit && task && (
               <div className="grid gap-1.5">
@@ -612,7 +608,6 @@ export function TaskDialog({
           </div>
 
           <DialogFooter className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-between">
-
             <div className="flex gap-2">
               {isEdit && (
                 <>
@@ -710,7 +705,6 @@ export function TaskDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </>
   );
 }

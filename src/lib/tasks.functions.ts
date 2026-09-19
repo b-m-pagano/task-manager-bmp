@@ -3,8 +3,6 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { expandRecurrence, type RecurrenceRule } from "@/lib/queue/recurrence";
 
-
-
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export const listWeekData = createServerFn({ method: "POST" })
@@ -44,15 +42,14 @@ export const listWeekData = createServerFn({ method: "POST" })
       events: eventsRes.data ?? [],
       categories: catsRes.data ?? [],
       projects: projectsRes.data ?? [],
-      settings:
-        settingsRes.data ?? {
-          user_id: context.userId,
-          day_start_minute: 420,
-          after_hours_minute: 1080,
-          buffer_minutes: 5,
-          carry_unfinished: true,
-          theme: "system",
-        },
+      settings: settingsRes.data ?? {
+        user_id: context.userId,
+        day_start_minute: 420,
+        after_hours_minute: 1080,
+        buffer_minutes: 5,
+        carry_unfinished: true,
+        theme: "system",
+      },
     };
   });
 
@@ -108,8 +105,7 @@ function startTsFromMinute(
   // Append the caller's local offset so Postgres timestamptz stores the
   // intended wall-clock time. Without it, the value would be interpreted as
   // UTC and shifted on read (a BRT 8:00 ends up showing as 5:00).
-  const offset =
-    typeof tzOffsetMinutes === "number" ? formatTzOffset(tzOffsetMinutes) : "";
+  const offset = typeof tzOffsetMinutes === "number" ? formatTzOffset(tzOffsetMinutes) : "";
   return `${day}T${h}:${m}:00${offset}`;
 }
 
@@ -137,7 +133,6 @@ const CreateTaskSchema = z.object({
   tz_offset_minutes: z.number().int().min(-840).max(840).optional(),
   recurrence: RecurrenceSchema.nullable().optional(),
 });
-
 
 export const createTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -229,7 +224,6 @@ export const createTask = createServerFn({ method: "POST" })
     if (error) throw error;
     return row;
   });
-
 
 const UpdateTaskSchema = z.object({
   id: z.string().uuid(),
@@ -407,7 +401,11 @@ export const rescheduleTasks = createServerFn({ method: "POST" })
           .from("tasks")
           .update({
             scheduled_day: u.scheduled_day,
-            scheduled_start: startTsFromMinute(u.scheduled_day, u.start_minute, data.tz_offset_minutes),
+            scheduled_start: startTsFromMinute(
+              u.scheduled_day,
+              u.start_minute,
+              data.tz_offset_minutes,
+            ),
           })
           .eq("id", u.id)
           .eq("user_id", userId),
@@ -549,11 +547,7 @@ export const deleteSeries = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    let q = supabase
-      .from("tasks")
-      .delete()
-      .eq("series_id", data.series_id)
-      .eq("user_id", userId);
+    let q = supabase.from("tasks").delete().eq("series_id", data.series_id).eq("user_id", userId);
     if (data.from_date) q = q.gte("scheduled_day", data.from_date);
     const { error } = await q;
     if (error) throw error;

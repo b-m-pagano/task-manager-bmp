@@ -66,11 +66,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:title", content: "FocusQueue — fila inteligente de tarefas" },
       { name: "twitter:title", content: "FocusQueue — fila inteligente de tarefas" },
-      { name: "description", content: "Meu Task Manager is a dynamic web app for intelligent task management, prioritizing users with ADHD." },
-      { property: "og:description", content: "Meu Task Manager is a dynamic web app for intelligent task management, prioritizing users with ADHD." },
-      { name: "twitter:description", content: "Meu Task Manager is a dynamic web app for intelligent task management, prioritizing users with ADHD." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b8cd2430-5fa2-4930-b293-3515c9013cf9/id-preview-f0bba67a--b031cc7e-4c64-461c-97b9-811fe3ab37e6.lovable.app-1779064003257.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b8cd2430-5fa2-4930-b293-3515c9013cf9/id-preview-f0bba67a--b031cc7e-4c64-461c-97b9-811fe3ab37e6.lovable.app-1779064003257.png" },
+      {
+        name: "description",
+        content:
+          "Meu Task Manager is a dynamic web app for intelligent task management, prioritizing users with ADHD.",
+      },
+      {
+        property: "og:description",
+        content:
+          "Meu Task Manager is a dynamic web app for intelligent task management, prioritizing users with ADHD.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Meu Task Manager is a dynamic web app for intelligent task management, prioritizing users with ADHD.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b8cd2430-5fa2-4930-b293-3515c9013cf9/id-preview-f0bba67a--b031cc7e-4c64-461c-97b9-811fe3ab37e6.lovable.app-1779064003257.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b8cd2430-5fa2-4930-b293-3515c9013cf9/id-preview-f0bba67a--b031cc7e-4c64-461c-97b9-811fe3ab37e6.lovable.app-1779064003257.png",
+      },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],

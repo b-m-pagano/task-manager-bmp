@@ -40,7 +40,15 @@ function fmt(minute: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export function EventCard({ event, category, project, onToggleStatus, isTogglingStatus, laneIndex = 0, laneCount = 1 }: EventCardProps) {
+export function EventCard({
+  event,
+  category,
+  project,
+  onToggleStatus,
+  isTogglingStatus,
+  laneIndex = 0,
+  laneCount = 1,
+}: EventCardProps) {
   const top = minuteToTop(event.startMinute);
   const height = Math.max(18, event.durationMinutes * PX_PER_MIN - 2);
   const compact = height < 44;
@@ -74,9 +82,7 @@ export function EventCard({ event, category, project, onToggleStatus, isToggling
   const startsAfterHours = !isDone && event.startMinute >= AFTER_HOURS;
   const endsAfterHours = !isDone && endMinute > AFTER_HOURS && event.startMinute < AFTER_HOURS;
   const isAfterHours = startsAfterHours || endsAfterHours;
-  const afterHoursTitle = startsAfterHours
-    ? "Tarefa começa após 18h"
-    : "Tarefa termina após 18h";
+  const afterHoursTitle = startsAfterHours ? "Tarefa começa após 18h" : "Tarefa termina após 18h";
 
   return (
     <div
@@ -90,9 +96,7 @@ export function EventCard({ event, category, project, onToggleStatus, isToggling
         top,
         height,
         ...laneStyle,
-        backgroundColor: isDone
-          ? undefined
-          : `color-mix(in oklab, ${tint} 10%, var(--card))`,
+        backgroundColor: isDone ? undefined : `color-mix(in oklab, ${tint} 10%, var(--card))`,
       }}
     >
       <div className="absolute left-0 top-0 h-full w-[3px]" style={{ backgroundColor: tint }} />
@@ -140,7 +144,9 @@ export function EventCard({ event, category, project, onToggleStatus, isToggling
               <span>após 18h</span>
             </span>
           )}
-          {priorityIcon[event.priority] && <span className="shrink-0">{priorityIcon[event.priority]}</span>}
+          {priorityIcon[event.priority] && (
+            <span className="shrink-0">{priorityIcon[event.priority]}</span>
+          )}
         </div>
         {!compact && (
           <div className="flex flex-wrap items-center gap-x-1 gap-y-0 text-[9.5px] tabular-nums text-muted-foreground">

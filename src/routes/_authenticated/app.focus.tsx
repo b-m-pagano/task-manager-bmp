@@ -26,11 +26,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { listWeekData, updateTask } from "@/lib/tasks.functions";
-import {
-  useFocusSettings,
-  resolveFocusSeconds,
-  type FocusSettings,
-} from "@/lib/focus/settings";
+import { useFocusSettings, resolveFocusSeconds, type FocusSettings } from "@/lib/focus/settings";
 
 export const Route = createFileRoute("/_authenticated/app/focus")({
   component: FocusPage,
@@ -100,9 +96,7 @@ function FocusPage() {
 
   // Timer state
   const [phase, setPhase] = useState<Phase>("focus");
-  const [secondsLeft, setSecondsLeft] = useState(() =>
-    resolveFocusSeconds(settings, 25),
-  );
+  const [secondsLeft, setSecondsLeft] = useState(() => resolveFocusSeconds(settings, 25));
   const [running, setRunning] = useState(false);
   const [deepWork, setDeepWork] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -172,8 +166,7 @@ function FocusPage() {
   }, [running, phase]);
 
   const updateMut = useMutation({
-    mutationFn: (vars: { id: string; status: FocusTask["status"] }) =>
-      updateFn({ data: vars }),
+    mutationFn: (vars: { id: string; status: FocusTask["status"] }) => updateFn({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["focus"] }),
   });
 
@@ -205,9 +198,7 @@ function FocusPage() {
       const target = e.target as HTMLElement | null;
       if (
         target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
       )
         return;
       if (e.code === "Space") {
@@ -261,11 +252,7 @@ function FocusPage() {
           title={deepWork ? "Sair do modo deep work (F)" : "Entrar no modo deep work (F)"}
           className="shrink-0"
         >
-          {deepWork ? (
-            <Minimize2 className="h-4 w-4" />
-          ) : (
-            <Maximize2 className="h-4 w-4" />
-          )}
+          {deepWork ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
         </Button>
       </div>
 
@@ -349,19 +336,14 @@ function FocusPage() {
               {mm}:{ss}
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                size="lg"
-                onClick={() => setRunning((r) => !r)}
-                className="min-w-[140px]"
-              >
+              <Button size="lg" onClick={() => setRunning((r) => !r)} className="min-w-[140px]">
                 {running ? (
                   <>
                     <Pause className="mr-2 h-4 w-4" /> Pausar
                   </>
                 ) : (
                   <>
-                    <Play className="mr-2 h-4 w-4" />{" "}
-                    {secondsLeft === 0 ? "Reiniciar" : "Iniciar"}
+                    <Play className="mr-2 h-4 w-4" /> {secondsLeft === 0 ? "Reiniciar" : "Iniciar"}
                   </>
                 )}
               </Button>
@@ -441,9 +423,7 @@ function FocusSettingsPopover({ settings, onChange, onReset }: FocusSettingsPopo
             <Label className="text-xs">Duração</Label>
             <RadioGroup
               value={settings.source}
-              onValueChange={(v) =>
-                onChange({ source: v as FocusSettings["source"] })
-              }
+              onValueChange={(v) => onChange({ source: v as FocusSettings["source"] })}
               className="gap-1.5"
             >
               <label className="flex items-center gap-2 text-sm">
@@ -470,9 +450,7 @@ function FocusSettingsPopover({ settings, onChange, onReset }: FocusSettingsPopo
           <Separator />
 
           <div className="space-y-3">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-              Pausas
-            </Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Pausas</Label>
             <NumberRow
               label="Pausa curta (min)"
               value={settings.shortBreakMinutes}

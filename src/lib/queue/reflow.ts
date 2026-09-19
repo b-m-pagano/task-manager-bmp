@@ -43,11 +43,7 @@ export interface ReflowResult {
  * Place an item starting at `desiredStart` for `duration` minutes, skipping
  * past any blocker that overlaps. Returns the chosen start minute.
  */
-function fitPast(
-  desiredStart: number,
-  duration: number,
-  blockers: ReflowBlock[],
-): number {
+function fitPast(desiredStart: number, duration: number, blockers: ReflowBlock[]): number {
   let start = desiredStart;
   // Iterate until stable (a push past one blocker may collide with the next).
   let safety = blockers.length + 2;
@@ -144,9 +140,7 @@ export function reflowConflicts(
     .map((e) => ({ start: e.start, end: e.end }))
     .sort((a, b) => a.start - b.start);
 
-  const ordered = tasks
-    .slice()
-    .sort((a, b) => a.start - b.start || a.id.localeCompare(b.id));
+  const ordered = tasks.slice().sort((a, b) => a.start - b.start || a.id.localeCompare(b.id));
 
   const occupied: ReflowBlock[] = blockers.slice();
   const changes: Record<string, number> = {};

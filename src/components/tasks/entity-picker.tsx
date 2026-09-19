@@ -75,9 +75,7 @@ export function EntityPicker({
     },
   }[kind];
 
-  const filtered = options.filter((o) =>
-    o.name.toLowerCase().includes(query.trim().toLowerCase()),
-  );
+  const filtered = options.filter((o) => o.name.toLowerCase().includes(query.trim().toLowerCase()));
 
   const createMut = useMutation({
     mutationFn: async (input: { name: string; color: string }) => {
@@ -121,11 +119,7 @@ export function EntityPicker({
       }}
     >
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-64 p-0"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <PopoverContent align="start" className="w-64 p-0" onClick={(e) => e.stopPropagation()}>
         {!creating ? (
           <div className="flex flex-col">
             <div className="relative border-b border-border">
@@ -182,9 +176,7 @@ export function EntityPicker({
               ))}
 
               {filtered.length === 0 && (
-                <li className="px-3 py-2 text-xs text-muted-foreground">
-                  Nenhum resultado
-                </li>
+                <li className="px-3 py-2 text-xs text-muted-foreground">Nenhum resultado</li>
               )}
             </ul>
 
@@ -242,14 +234,11 @@ export function EntityPicker({
               <Button
                 size="sm"
                 onClick={() =>
-                  newName.trim() &&
-                  createMut.mutate({ name: newName.trim(), color: newColor })
+                  newName.trim() && createMut.mutate({ name: newName.trim(), color: newColor })
                 }
                 disabled={!newName.trim() || createMut.isPending}
               >
-                {createMut.isPending && (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                )}
+                {createMut.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
                 Criar
               </Button>
             </div>

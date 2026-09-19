@@ -33,9 +33,7 @@ function SettingsPage() {
       <div className="mx-auto max-w-2xl space-y-6">
         <header>
           <h1 className="text-xl font-semibold tracking-tight">Configurações</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Preferências da conta e integrações.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Preferências da conta e integrações.</p>
         </header>
         <GoogleCalendarCard />
       </div>
@@ -113,12 +111,7 @@ function GoogleCalendarCard() {
                 <XCircle className="mr-1.5 h-3.5 w-3.5" />
                 {acting === "disconnect" ? "Desconectando…" : "Desconectar"}
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onConnect}
-                disabled={acting === "connect"}
-              >
+              <Button variant="ghost" size="sm" onClick={onConnect} disabled={acting === "connect"}>
                 Reconectar
               </Button>
             </div>

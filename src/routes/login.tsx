@@ -30,8 +30,7 @@ function LoginPage() {
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
       extraParams: {
-        scope:
-          "openid email profile https://www.googleapis.com/auth/calendar.readonly",
+        scope: "openid email profile https://www.googleapis.com/auth/calendar.readonly",
         access_type: "offline",
         prompt: "consent",
       },

@@ -77,10 +77,7 @@ export function useFocusSettings() {
 }
 
 /** Resolve a duração do timer (segundos) para uma tarefa, dado os ajustes. */
-export function resolveFocusSeconds(
-  settings: FocusSettings,
-  taskEstimatedMinutes: number,
-): number {
+export function resolveFocusSeconds(settings: FocusSettings, taskEstimatedMinutes: number): number {
   const minutes =
     settings.source === "fixed"
       ? settings.focusMinutes

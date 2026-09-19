@@ -43,9 +43,7 @@ const orgItems = [
   { title: "Categorias", url: "/app/categories", icon: Tags },
 ];
 
-const systemItems = [
-  { title: "Configurações", url: "/app/settings", icon: Settings },
-];
+const systemItems = [{ title: "Configurações", url: "/app/settings", icon: Settings }];
 
 export function AppSidebar() {
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
@@ -83,7 +81,11 @@ export function AppSidebar() {
                 const showBadge = isInbox && (inboxCount ?? 0) > 0;
                 return (
                   <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url, item.exact)} tooltip={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url, item.exact)}
+                      tooltip={item.title}
+                    >
                       <Link to={item.url}>
                         <item.icon />
                         <span className="flex-1">{item.title}</span>

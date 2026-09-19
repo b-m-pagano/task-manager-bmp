@@ -37,9 +37,7 @@ export const Route = createFileRoute("/_authenticated/app/week")({
   component: WeekPage,
   head: () => ({ meta: [{ title: "Semana — FocusQueue" }] }),
   validateSearch: (search) =>
-    z
-      .object({ day: z.string().regex(ISO_DATE).optional() })
-      .parse(search),
+    z.object({ day: z.string().regex(ISO_DATE).optional() }).parse(search),
 });
 
 interface RawTask {
@@ -125,9 +123,7 @@ function WeekPage() {
         if (!old) return old;
         return {
           ...old,
-          tasks: old.tasks.map((t: RawTask) =>
-            t.id === v.id ? { ...t, status: v.status } : t,
-          ),
+          tasks: old.tasks.map((t: RawTask) => (t.id === v.id ? { ...t, status: v.status } : t)),
         };
       });
       return { prev };
@@ -145,10 +141,7 @@ function WeekPage() {
     () => Object.fromEntries(categories.map((c) => [c.id, c])),
     [categories],
   );
-  const projectById = useMemo(
-    () => Object.fromEntries(projects.map((p) => [p.id, p])),
-    [projects],
-  );
+  const projectById = useMemo(() => Object.fromEntries(projects.map((p) => [p.id, p])), [projects]);
 
   const openCreate = useCallback((day?: string) => {
     setEditing(null);
@@ -390,9 +383,7 @@ function WeekPage() {
       const afterHoursCount = placements.filter((p) => p.afterHours).length;
       toast.success(`${changes.length} tarefa(s) replanejada(s)`, {
         description:
-          afterHoursCount > 0
-            ? `${afterHoursCount} ultrapassa(m) 18h`
-            : "Sequência otimizada",
+          afterHoursCount > 0 ? `${afterHoursCount} ultrapassa(m) 18h` : "Sequência otimizada",
       });
     },
     [data, daysISO, qc, rescheduleMut],
@@ -419,9 +410,7 @@ function WeekPage() {
       const target = e.target as HTMLElement | null;
       const inField =
         target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable);
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
       if (inField) return;
       if (e.key === "n" || e.key === "N") {
         e.preventDefault();
@@ -484,12 +473,7 @@ function WeekPage() {
         </Popover>
         <Popover>
           <PopoverTrigger asChild>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="shrink-0"
-              title="Legenda de categorias"
-            >
+            <Button size="sm" variant="ghost" className="shrink-0" title="Legenda de categorias">
               <Tags className="h-3.5 w-3.5" />
             </Button>
           </PopoverTrigger>
@@ -500,10 +484,7 @@ function WeekPage() {
             <ul className="space-y-1.5">
               {categories.map((c) => (
                 <li key={c.id} className="flex items-center gap-2 text-xs">
-                  <span
-                    className="h-2.5 w-2.5 rounded-sm"
-                    style={{ backgroundColor: c.color }}
-                  />
+                  <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: c.color }} />
                   <span className="text-foreground">{c.name}</span>
                 </li>
               ))}
@@ -615,13 +596,21 @@ function WeekPage() {
                 for (const t of dayTasks) {
                   const startMin = tsToMinute(t.scheduled_start, stack);
                   if (!t.scheduled_start) stack = startMin + t.estimated_minutes;
-                  items.push({ kind: "task", task: t, start: startMin, duration: t.estimated_minutes });
+                  items.push({
+                    kind: "task",
+                    task: t,
+                    start: startMin,
+                    duration: t.estimated_minutes,
+                  });
                 }
                 for (const e of dayEvents as any[]) {
                   const startD = new Date(e.starts_at);
                   const endD = new Date(e.ends_at);
                   const startMin = startD.getHours() * 60 + startD.getMinutes();
-                  const rawDur = Math.max(15, Math.round((endD.getTime() - startD.getTime()) / 60000));
+                  const rawDur = Math.max(
+                    15,
+                    Math.round((endD.getTime() - startD.getTime()) / 60000),
+                  );
                   const dur = Math.min(rawDur, 24 * 60 - startMin);
                   items.push({
                     kind: "event",
@@ -658,10 +647,7 @@ function WeekPage() {
                 let clusterEnd = -1;
                 const flush = () => {
                   if (cluster.length === 0) return;
-                  const maxLane = cluster.reduce(
-                    (m, x) => Math.max(m, itemLane.get(x) ?? 0),
-                    0,
-                  );
+                  const maxLane = cluster.reduce((m, x) => Math.max(m, itemLane.get(x) ?? 0), 0);
                   const count = maxLane + 1;
                   for (const x of cluster) clusterCount.set(x, count);
                   cluster = [];
@@ -759,7 +745,6 @@ function WeekPage() {
                   </DayColumnGrid>
                 );
               })}
-
             </div>
             {isLoading && (
               <div className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs text-muted-foreground">

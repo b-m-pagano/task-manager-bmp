@@ -39,9 +39,7 @@ export function HourGutter() {
             key={h}
             className={cn(
               "absolute right-2 -translate-y-1/2 text-[10px] tabular-nums",
-              inWork
-                ? "font-semibold text-foreground/80"
-                : "font-medium text-muted-foreground/45",
+              inWork ? "font-semibold text-foreground/80" : "font-medium text-muted-foreground/45",
             )}
             style={{ top: (h - DAY_START_HOUR) * PX_PER_HOUR }}
           >

@@ -61,11 +61,7 @@ function fmt(min: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export function AiInsightsPanel({
-  day,
-  onApplySuggestion,
-  onReplanDay,
-}: AiInsightsPanelProps) {
+export function AiInsightsPanel({ day, onApplySuggestion, onReplanDay }: AiInsightsPanelProps) {
   const [open, setOpen] = useState(false);
   const [insights, setInsights] = useState<AiInsights | null>(null);
   const analyzeFn = useServerFn(analyzeDay);
@@ -117,15 +113,11 @@ export function AiInsightsPanel({
             {insights && (
               <>
                 <section className="space-y-2">
-                  <p className="text-sm leading-relaxed text-foreground">
-                    {insights.summary}
-                  </p>
+                  <p className="text-sm leading-relaxed text-foreground">{insights.summary}</p>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-muted-foreground">
                       <span>Carga do dia</span>
-                      <span className="tabular-nums">
-                        {insights.overloadScore}%
-                      </span>
+                      <span className="tabular-nums">{insights.overloadScore}%</span>
                     </div>
                     <Progress
                       value={insights.overloadScore}
@@ -188,8 +180,7 @@ export function AiInsightsPanel({
                               </span>
                               {r.delayMinutes > 0 && (
                                 <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  +{r.delayMinutes}min
+                                  <AlertTriangle className="h-3 w-3" />+{r.delayMinutes}min
                                 </span>
                               )}
                             </div>
@@ -232,16 +223,10 @@ export function AiInsightsPanel({
                               <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                  <p className="font-medium leading-tight">
-                                    {s.title}
-                                  </p>
+                                  <p className="font-medium leading-tight">{s.title}</p>
                                   {s.severity !== "info" && (
                                     <Badge
-                                      variant={
-                                        s.severity === "high"
-                                          ? "destructive"
-                                          : "secondary"
-                                      }
+                                      variant={s.severity === "high" ? "destructive" : "secondary"}
                                       className="h-4 px-1.5 text-[9px]"
                                     >
                                       {s.severity === "high" ? "alto" : "atenção"}
@@ -266,11 +251,7 @@ export function AiInsightsPanel({
                                     className="mt-2 h-7 text-xs"
                                     onClick={() => {
                                       const id = s.taskIds![0];
-                                      onApplySuggestion!(
-                                        id,
-                                        day,
-                                        s.suggestedStartMinute!,
-                                      );
+                                      onApplySuggestion!(id, day, s.suggestedStartMinute!);
                                       toast.success("Sugestão aplicada");
                                     }}
                                   >
@@ -291,12 +272,7 @@ export function AiInsightsPanel({
         </ScrollArea>
 
         <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={refresh}
-            disabled={mut.isPending}
-          >
+          <Button size="sm" variant="ghost" onClick={refresh} disabled={mut.isPending}>
             {mut.isPending ? (
               <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
             ) : (

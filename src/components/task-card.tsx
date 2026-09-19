@@ -20,7 +20,18 @@ export interface TaskCardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const TaskCard = React.forwardRef<HTMLDivElement, TaskCardProps>(
   (
-    { title, done, startLabel, endLabel, minutes, categoryName, categoryColor, onToggleDone, className, ...rest },
+    {
+      title,
+      done,
+      startLabel,
+      endLabel,
+      minutes,
+      categoryName,
+      categoryColor,
+      onToggleDone,
+      className,
+      ...rest
+    },
     ref,
   ) => {
     return (
@@ -34,7 +45,10 @@ export const TaskCard = React.forwardRef<HTMLDivElement, TaskCardProps>(
         {...rest}
       >
         {categoryColor && (
-          <div className="absolute left-0 top-0 h-full w-[3px]" style={{ backgroundColor: categoryColor }} />
+          <div
+            className="absolute left-0 top-0 h-full w-[3px]"
+            style={{ backgroundColor: categoryColor }}
+          />
         )}
         <button
           onClick={onToggleDone}
@@ -47,7 +61,12 @@ export const TaskCard = React.forwardRef<HTMLDivElement, TaskCardProps>(
           )}
         />
         <div className="min-w-0 flex-1 pl-1">
-          <p className={cn("font-medium leading-snug", done ? "text-muted-foreground line-through" : "text-foreground")}>
+          <p
+            className={cn(
+              "font-medium leading-snug",
+              done ? "text-muted-foreground line-through" : "text-foreground",
+            )}
+          >
             {title}
           </p>
           {(startLabel || minutes || categoryName) && (

@@ -62,10 +62,7 @@ export const Route = createFileRoute("/api/public/google/callback")({
           return htmlRedirect(`${settingsUrl}?google=connected`, "Conectado! Redirecionando…");
         } catch (e) {
           console.error("[google/callback]", e);
-          return htmlRedirect(
-            `${settingsUrl}?google=error`,
-            "Falha ao conectar. Redirecionando…",
-          );
+          return htmlRedirect(`${settingsUrl}?google=error`, "Falha ao conectar. Redirecionando…");
         }
       },
     },

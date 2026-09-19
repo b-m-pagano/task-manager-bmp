@@ -20,11 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { listTasks } from "@/lib/tasks.functions";
@@ -197,18 +193,14 @@ function TasksPage() {
               name: PRIORITY_LABEL[p],
             }))}
             selected={filters.priorities}
-            onChange={(ids) =>
-              setFilters((f) => ({ ...f, priorities: ids as Priority[] }))
-            }
+            onChange={(ids) => setFilters((f) => ({ ...f, priorities: ids as Priority[] }))}
           />
 
           <DateRangeFilter
             label="Criação"
             from={filters.createdFrom}
             to={filters.createdTo}
-            onChange={(from, to) =>
-              setFilters((f) => ({ ...f, createdFrom: from, createdTo: to }))
-            }
+            onChange={(from, to) => setFilters((f) => ({ ...f, createdFrom: from, createdTo: to }))}
           />
 
           {(filters.scope === "done" || filters.scope === "all") && (
@@ -319,9 +311,7 @@ function TasksPage() {
                   onClick={() => setLimit((l) => l + 50)}
                   disabled={isFetching}
                 >
-                  {isFetching ? (
-                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                  ) : null}
+                  {isFetching ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
                   Carregar mais ({tasks.length} de {total})
                 </Button>
               </div>
@@ -392,9 +382,7 @@ function MultiSelectFilter({
       <PopoverContent className="w-56 p-1" align="start">
         <div className="max-h-72 overflow-y-auto">
           {options.length === 0 ? (
-            <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-              Nenhuma opção
-            </div>
+            <div className="px-2 py-3 text-center text-xs text-muted-foreground">Nenhuma opção</div>
           ) : (
             options.map((opt) => {
               const checked = selected.includes(opt.id);

@@ -15,11 +15,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -130,8 +126,7 @@ function InboxPage() {
   });
 
   const completeMut = useMutation({
-    mutationFn: (id: string) =>
-      updateFn({ data: { id, status: "done" } }),
+    mutationFn: (id: string) => updateFn({ data: { id, status: "done" } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inbox"] });
       toast.success("Marcada como concluída");
@@ -171,8 +166,7 @@ function InboxPage() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       const inField =
-        t &&
-        (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+        t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
       if (inField) return;
       if (e.key === "i" || e.key === "I") {
         e.preventDefault();
@@ -197,7 +191,8 @@ function InboxPage() {
           {count}
         </span>
         <span className="ml-auto text-[11px] text-muted-foreground">
-          Capture agora, decida o quando depois · atalho <kbd className="rounded border border-border bg-muted px-1 py-px text-[10px]">i</kbd>
+          Capture agora, decida o quando depois · atalho{" "}
+          <kbd className="rounded border border-border bg-muted px-1 py-px text-[10px]">i</kbd>
         </span>
       </header>
 
@@ -245,9 +240,7 @@ function InboxPage() {
           </Button>
         )}
 
-        {isLoading && (
-          <p className="text-xs text-muted-foreground">Carregando…</p>
-        )}
+        {isLoading && <p className="text-xs text-muted-foreground">Carregando…</p>}
 
         {!isLoading && items.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 py-16 text-center">
@@ -322,16 +315,10 @@ function InboxRow({
         aria-label="Concluir tarefa"
         className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/40 transition-colors hover:border-primary"
       />
-      <button
-        onClick={onEdit}
-        className="min-w-0 flex-1 text-left"
-        title="Editar"
-      >
+      <button onClick={onEdit} className="min-w-0 flex-1 text-left" title="Editar">
         <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
         {task.description && (
-          <p className="truncate text-[11px] text-muted-foreground">
-            {task.description}
-          </p>
+          <p className="truncate text-[11px] text-muted-foreground">{task.description}</p>
         )}
       </button>
 
@@ -349,12 +336,7 @@ function InboxRow({
 
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverTrigger asChild>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 gap-1 text-xs"
-            disabled={busy}
-          >
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" disabled={busy}>
             <CalendarIcon className="h-3 w-3" />
             Agendar
           </Button>
@@ -407,16 +389,11 @@ function InboxRow({
           <DropdownMenuItem onClick={onComplete}>
             <CheckCircle2 className="mr-2 h-3.5 w-3.5" /> Concluir
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => navigate({ to: "/app/week" })}
-          >
+          <DropdownMenuItem onClick={() => navigate({ to: "/app/week" })}>
             <CalendarIcon className="mr-2 h-3.5 w-3.5" /> Abrir semana
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={onDelete}
-            className="text-destructive focus:text-destructive"
-          >
+          <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
             <Trash2 className="mr-2 h-3.5 w-3.5" /> Excluir
           </DropdownMenuItem>
         </DropdownMenuContent>

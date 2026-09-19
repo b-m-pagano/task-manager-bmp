@@ -3,12 +3,7 @@ import { Plus, Trash2, Check } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import {
-  listSubtasks,
-  createTask,
-  updateTask,
-  deleteTask,
-} from "@/lib/tasks.functions";
+import { listSubtasks, createTask, updateTask, deleteTask } from "@/lib/tasks.functions";
 import { cn } from "@/lib/utils";
 
 interface SubtaskListProps {
@@ -76,9 +71,7 @@ export function SubtaskList({ parentId, parentScheduledDay, onOpenSubtask }: Sub
             className="group flex items-center gap-2 rounded-md border border-border bg-card px-2 py-1.5 text-sm transition-colors hover:border-primary/40"
           >
             <button
-              onClick={() =>
-                toggleMut.mutate({ id: s.id, status: done ? "pending" : "done" })
-              }
+              onClick={() => toggleMut.mutate({ id: s.id, status: done ? "pending" : "done" })}
               className={cn(
                 "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
                 done

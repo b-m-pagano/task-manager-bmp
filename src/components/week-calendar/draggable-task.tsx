@@ -134,13 +134,18 @@ export function DraggableTask({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className={cn(
-          "relative z-[1] touch-none",
-          dragging ? "cursor-grabbing" : "cursor-grab",
-        )}
+        className={cn("relative z-[1] touch-none", dragging ? "cursor-grabbing" : "cursor-grab")}
         style={wrapperStyle}
       >
-        <EventCard event={event} category={category} project={project} onToggleStatus={onToggleStatus} isTogglingStatus={isTogglingStatus} laneIndex={laneIndex} laneCount={laneCount} />
+        <EventCard
+          event={event}
+          category={category}
+          project={project}
+          onToggleStatus={onToggleStatus}
+          isTogglingStatus={isTogglingStatus}
+          laneIndex={laneIndex}
+          laneCount={laneCount}
+        />
       </div>
     </>
   );
@@ -197,22 +202,14 @@ function DropPreview({
         )}
       </div>
       {isAfterHours && (
-        <div className="px-2 text-[9.5px] font-medium text-after-hours/90">
-          {warningLabel}
-        </div>
+        <div className="px-2 text-[9.5px] font-medium text-after-hours/90">{warningLabel}</div>
       )}
     </div>
   );
   return <PortalInto host={col}>{node}</PortalInto>;
 }
 
-function PortalInto({
-  host,
-  children,
-}: {
-  host: HTMLElement;
-  children: React.ReactNode;
-}) {
+function PortalInto({ host, children }: { host: HTMLElement; children: React.ReactNode }) {
   const [mount, setMount] = React.useState<HTMLDivElement | null>(null);
   React.useEffect(() => {
     const div = document.createElement("div");
