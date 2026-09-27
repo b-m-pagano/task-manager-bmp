@@ -125,17 +125,30 @@ export function DiagnosticsCard() {
           status: "error",
           detail: "Client ID ou Client Secret do Google ausentes no servidor.",
           fix: "Peça ao assistente para cadastrar GOOGLE_OAUTH_CLIENT_ID e GOOGLE_OAUTH_CLIENT_SECRET (copiados do Google Cloud Console → Credenciais).",
+          onTest: retest,
+          testing: q.isFetching,
         });
       } else {
-        rows.push({ label: "Credenciais do Google", status: "ok", detail: "Configuradas" });
+        rows.push({
+          label: "Credenciais do Google",
+          status: "ok",
+          detail: "Configuradas",
+          onTest: retest,
+          testing: q.isFetching,
+        });
       }
 
+      const googleRowBase = {
+        onTest: () => googleTest.mutate(),
+        testing: googleTest.isPending,
+      };
       if (g.queryError) {
         rows.push({
           label: "Google Calendar",
           status: "error",
           detail: g.queryError,
           fix: "Não foi possível ler a conexão. Tente novamente em instantes.",
+          ...googleRowBase,
         });
       } else if (!g.connected) {
         rows.push({
@@ -143,6 +156,7 @@ export function DiagnosticsCard() {
           status: "warn",
           detail: "Nenhuma conta conectada.",
           fix: "Clique em “Conectar Google Calendar” no cartão acima e autorize o acesso ao calendário.",
+          ...googleRowBase,
         });
       } else {
         const last = g.lastSyncAt ? new Date(g.lastSyncAt) : null;
@@ -156,6 +170,7 @@ export function DiagnosticsCard() {
           fix: stale
             ? "Abra a Semana e clique no botão “Calendar” para sincronizar. Se falhar, use “Reconectar” acima."
             : undefined,
+          ...googleRowBase,
         });
       }
     }
