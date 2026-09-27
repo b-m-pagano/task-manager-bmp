@@ -213,6 +213,23 @@ export function DiagnosticsCard() {
                     </p>
                   )}
                 </div>
+                {r.onTest && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 shrink-0 px-2 text-xs"
+                    onClick={r.onTest}
+                    disabled={r.testing}
+                    title={`Testar novamente: ${r.label}`}
+                  >
+                    {r.testing ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Play className="mr-1 h-3 w-3" />
+                    )}
+                    Testar
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
