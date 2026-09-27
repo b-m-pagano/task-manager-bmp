@@ -1,11 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Stethoscope, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Play, RefreshCw, Stethoscope, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { getDiagnostics } from "@/lib/diagnostics.functions";
+import { getDiagnostics, testGoogleConnection } from "@/lib/diagnostics.functions";
 
 type Status = "ok" | "warn" | "error";
 
@@ -14,6 +15,8 @@ interface Row {
   status: Status;
   detail: string;
   fix?: string;
+  onTest?: () => void;
+  testing?: boolean;
 }
 
 function StatusIcon({ s }: { s: Status }) {
@@ -24,6 +27,7 @@ function StatusIcon({ s }: { s: Status }) {
 
 export function DiagnosticsCard() {
   const diagFn = useServerFn(getDiagnostics);
+  const testGoogleFn = useServerFn(testGoogleConnection);
 
   const q = useQuery({
     queryKey: ["diagnostics"],
@@ -41,19 +45,39 @@ export function DiagnosticsCard() {
     },
   });
 
+  const retest = () => q.refetch();
+
+  const googleTest = useMutation({
+    mutationFn: () => testGoogleFn(),
+    onSuccess: (r) => {
+      if (r.ok) toast.success("Google Calendar OK", { description: r.detail });
+      else toast.error(`Falha na etapa: ${r.step}`, { description: r.detail });
+      q.refetch();
+    },
+    onError: (e) => toast.error("Teste do Google falhou", { description: String(e) }),
+  });
+
   const rows: Row[] = [];
   if (q.data) {
     const { auth, authErr, server, serverErr } = q.data;
 
     // Auth
     if (auth) {
-      rows.push({ label: "Autenticação", status: "ok", detail: `Conectado como ${auth.email}` });
+      rows.push({
+        label: "Autenticação",
+        status: "ok",
+        detail: `Conectado como ${auth.email}`,
+        onTest: retest,
+        testing: q.isFetching,
+      });
     } else {
       rows.push({
         label: "Autenticação",
         status: "error",
         detail: authErr ?? "Nenhuma sessão ativa.",
         fix: "Sua sessão expirou. Saia (ícone no canto superior direito) e entre novamente.",
+        onTest: retest,
+        testing: q.isFetching,
       });
     }
 
@@ -68,6 +92,8 @@ export function DiagnosticsCard() {
           : /environment|SUPABASE/i.test(serverErr ?? "")
             ? "As credenciais do backend não estão disponíveis. Recarregue a página em 1 minuto; se persistir, peça ao assistente para religar o Lovable Cloud."
             : "Verifique sua internet e clique em “Verificar novamente”. Se persistir, peça ajuda ao assistente.",
+        onTest: retest,
+        testing: q.isFetching,
       });
     } else {
       const b = server.backend;
@@ -78,12 +104,16 @@ export function DiagnosticsCard() {
               status: b.dbLatencyMs > 1500 ? "warn" : "ok",
               detail: `Respondendo em ${b.dbLatencyMs} ms`,
               fix: b.dbLatencyMs > 1500 ? "Resposta lenta. Pode ser instabilidade temporária." : undefined,
+              onTest: retest,
+              testing: q.isFetching,
             }
           : {
               label: "Servidor e banco de dados",
               status: "error",
               detail: b.dbError ?? "Configuração do backend incompleta.",
               fix: "Recarregue a página. Se continuar, peça ao assistente para verificar o Lovable Cloud.",
+              onTest: retest,
+              testing: q.isFetching,
             },
       );
 
@@ -95,17 +125,30 @@ export function DiagnosticsCard() {
           status: "error",
           detail: "Client ID ou Client Secret do Google ausentes no servidor.",
           fix: "Peça ao assistente para cadastrar GOOGLE_OAUTH_CLIENT_ID e GOOGLE_OAUTH_CLIENT_SECRET (copiados do Google Cloud Console → Credenciais).",
+          onTest: retest,
+          testing: q.isFetching,
         });
       } else {
-        rows.push({ label: "Credenciais do Google", status: "ok", detail: "Configuradas" });
+        rows.push({
+          label: "Credenciais do Google",
+          status: "ok",
+          detail: "Configuradas",
+          onTest: retest,
+          testing: q.isFetching,
+        });
       }
 
+      const googleRowBase = {
+        onTest: () => googleTest.mutate(),
+        testing: googleTest.isPending,
+      };
       if (g.queryError) {
         rows.push({
           label: "Google Calendar",
           status: "error",
           detail: g.queryError,
           fix: "Não foi possível ler a conexão. Tente novamente em instantes.",
+          ...googleRowBase,
         });
       } else if (!g.connected) {
         rows.push({
@@ -113,6 +156,7 @@ export function DiagnosticsCard() {
           status: "warn",
           detail: "Nenhuma conta conectada.",
           fix: "Clique em “Conectar Google Calendar” no cartão acima e autorize o acesso ao calendário.",
+          ...googleRowBase,
         });
       } else {
         const last = g.lastSyncAt ? new Date(g.lastSyncAt) : null;
@@ -126,6 +170,7 @@ export function DiagnosticsCard() {
           fix: stale
             ? "Abra a Semana e clique no botão “Calendar” para sincronizar. Se falhar, use “Reconectar” acima."
             : undefined,
+          ...googleRowBase,
         });
       }
     }
@@ -168,6 +213,23 @@ export function DiagnosticsCard() {
                     </p>
                   )}
                 </div>
+                {r.onTest && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 shrink-0 px-2 text-xs"
+                    onClick={r.onTest}
+                    disabled={r.testing}
+                    title={`Testar novamente: ${r.label}`}
+                  >
+                    {r.testing ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Play className="mr-1 h-3 w-3" />
+                    )}
+                    Testar
+                  </Button>
+                )}
               </li>
             ))}
           </ul>

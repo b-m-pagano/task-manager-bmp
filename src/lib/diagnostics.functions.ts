@@ -39,3 +39,44 @@ export const getDiagnostics = createServerFn({ method: "GET" })
       checkedAt: new Date().toISOString(),
     };
   });
+
+/** Testa de verdade a conexão com o Google: renova o token e consulta a agenda. */
+export const testGoogleConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    const { data: conn, error: connError } = await supabase
+      .from("google_connections")
+      .select("refresh_token")
+      .maybeSingle();
+    if (connError) return { ok: false, step: "banco", detail: connError.message };
+    if (!conn?.refresh_token) {
+      return { ok: false, step: "conexão", detail: "Nenhuma conta Google conectada." };
+    }
+
+    let accessToken: string;
+    try {
+      const { refreshAccessToken } = await import("./google/oauth.server");
+      const tokens = await refreshAccessToken(conn.refresh_token);
+      accessToken = tokens.access_token;
+    } catch (e) {
+      return {
+        ok: false,
+        step: "renovação do token",
+        detail: e instanceof Error ? e.message : String(e),
+      };
+    }
+
+    const t0 = Date.now();
+    const res = await fetch(
+      "https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1&singleEvents=true&timeMin=" +
+        encodeURIComponent(new Date().toISOString()),
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    const latencyMs = Date.now() - t0;
+    if (!res.ok) {
+      return { ok: false, step: "leitura da agenda", detail: `Google respondeu ${res.status}` };
+    }
+    return { ok: true, step: "leitura da agenda", detail: `Agenda respondeu em ${latencyMs} ms`, latencyMs, userId };
+  });
