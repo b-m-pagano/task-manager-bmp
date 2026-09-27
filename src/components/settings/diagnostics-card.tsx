@@ -29,18 +29,6 @@ export function DiagnosticsCard() {
   const diagFn = useServerFn(getDiagnostics);
   const testGoogleFn = useServerFn(testGoogleConnection);
 
-  const googleTest = useMutation({
-    mutationFn: () => testGoogleFn(),
-    onSuccess: (r) => {
-      if (r.ok) toast.success("Google Calendar OK", { description: r.detail });
-      else toast.error(`Falha na etapa: ${r.step}`, { description: r.detail });
-      q.refetch();
-    },
-    onError: (e) => toast.error("Teste do Google falhou", { description: String(e) }),
-  });
-
-  const retest = () => q.refetch();
-
   const q = useQuery({
     queryKey: ["diagnostics"],
     retry: false,
@@ -55,6 +43,18 @@ export function DiagnosticsCard() {
       }
       return { auth: auth?.user ?? null, authErr: authErr?.message ?? null, server, serverErr };
     },
+  });
+
+  const retest = () => q.refetch();
+
+  const googleTest = useMutation({
+    mutationFn: () => testGoogleFn(),
+    onSuccess: (r) => {
+      if (r.ok) toast.success("Google Calendar OK", { description: r.detail });
+      else toast.error(`Falha na etapa: ${r.step}`, { description: r.detail });
+      q.refetch();
+    },
+    onError: (e) => toast.error("Teste do Google falhou", { description: String(e) }),
   });
 
   const rows: Row[] = [];
