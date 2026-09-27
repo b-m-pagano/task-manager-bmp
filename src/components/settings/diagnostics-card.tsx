@@ -63,13 +63,21 @@ export function DiagnosticsCard() {
 
     // Auth
     if (auth) {
-      rows.push({ label: "Autenticação", status: "ok", detail: `Conectado como ${auth.email}` });
+      rows.push({
+        label: "Autenticação",
+        status: "ok",
+        detail: `Conectado como ${auth.email}`,
+        onTest: retest,
+        testing: q.isFetching,
+      });
     } else {
       rows.push({
         label: "Autenticação",
         status: "error",
         detail: authErr ?? "Nenhuma sessão ativa.",
         fix: "Sua sessão expirou. Saia (ícone no canto superior direito) e entre novamente.",
+        onTest: retest,
+        testing: q.isFetching,
       });
     }
 
@@ -84,6 +92,8 @@ export function DiagnosticsCard() {
           : /environment|SUPABASE/i.test(serverErr ?? "")
             ? "As credenciais do backend não estão disponíveis. Recarregue a página em 1 minuto; se persistir, peça ao assistente para religar o Lovable Cloud."
             : "Verifique sua internet e clique em “Verificar novamente”. Se persistir, peça ajuda ao assistente.",
+        onTest: retest,
+        testing: q.isFetching,
       });
     } else {
       const b = server.backend;
@@ -94,12 +104,16 @@ export function DiagnosticsCard() {
               status: b.dbLatencyMs > 1500 ? "warn" : "ok",
               detail: `Respondendo em ${b.dbLatencyMs} ms`,
               fix: b.dbLatencyMs > 1500 ? "Resposta lenta. Pode ser instabilidade temporária." : undefined,
+              onTest: retest,
+              testing: q.isFetching,
             }
           : {
               label: "Servidor e banco de dados",
               status: "error",
               detail: b.dbError ?? "Configuração do backend incompleta.",
               fix: "Recarregue a página. Se continuar, peça ao assistente para verificar o Lovable Cloud.",
+              onTest: retest,
+              testing: q.isFetching,
             },
       );
 
