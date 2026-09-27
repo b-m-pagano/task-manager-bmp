@@ -1,11 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Stethoscope, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Play, RefreshCw, Stethoscope, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { getDiagnostics } from "@/lib/diagnostics.functions";
+import { getDiagnostics, testGoogleConnection } from "@/lib/diagnostics.functions";
 
 type Status = "ok" | "warn" | "error";
 
@@ -14,6 +15,8 @@ interface Row {
   status: Status;
   detail: string;
   fix?: string;
+  onTest?: () => void;
+  testing?: boolean;
 }
 
 function StatusIcon({ s }: { s: Status }) {
