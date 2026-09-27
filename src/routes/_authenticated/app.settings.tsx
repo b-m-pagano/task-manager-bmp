@@ -12,6 +12,7 @@ import {
   getGoogleAuthUrl,
   getGoogleConnectionStatus,
 } from "@/lib/google/connection.functions";
+import { DiagnosticsCard } from "@/components/settings/diagnostics-card";
 
 export const Route = createFileRoute("/_authenticated/app/settings")({
   component: SettingsPage,
@@ -36,6 +37,7 @@ function SettingsPage() {
           <p className="mt-1 text-sm text-muted-foreground">Preferências da conta e integrações.</p>
         </header>
         <GoogleCalendarCard />
+        <DiagnosticsCard />
       </div>
     </div>
   );
