@@ -19,7 +19,7 @@ function DefaultErrorComponent({ error, reset }: import("@tanstack/react-router"
     >
       <div style={{ maxWidth: "28rem", textAlign: "center" }}>
         <h1 style={{ fontSize: "1.25rem", margin: "0 0 0.5rem" }}>Algo deu errado</h1>
-        <p style={{ color: "#4b5563", margin: "0 0 1.5rem" }}>{error.message}</p>
+        <p style={{ color: "#4b5563", margin: "0 0 1.5rem" }}>{(error as Error)?.message}</p>
         <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center" }}>
           <button
             onClick={() => {
