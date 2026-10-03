@@ -11,6 +11,18 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
+function safeNext(): string | null {
+  if (typeof window === "undefined") return null;
+  const n = new URLSearchParams(window.location.search).get("next");
+  return n && n.startsWith("/") && !n.startsWith("//") ? n : null;
+}
+
+function goAfterLogin(navigate: ReturnType<typeof useNavigate>) {
+  const next = safeNext();
+  if (next) window.location.assign(next);
+  else navigate({ to: "/app/week" });
+}
+
 export const Route = createFileRoute("/login")({
   component: LoginPage,
   head: () => ({ meta: [{ title: "Entrar — FocusQueue" }] }),
@@ -22,13 +34,13 @@ function LoginPage() {
   const [loadingGoogle, setLoadingGoogle] = useState(false);
 
   useEffect(() => {
-    if (isReady && user) navigate({ to: "/app/week" });
+    if (isReady && user) goAfterLogin(navigate);
   }, [isReady, user, navigate]);
 
   async function signInWithGoogle() {
     setLoadingGoogle(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: window.location.origin + (safeNext() ?? ""),
       extraParams: {
         scope: "openid email profile https://www.googleapis.com/auth/calendar.readonly",
         access_type: "offline",
@@ -41,7 +53,7 @@ function LoginPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/app/week" });
+    goAfterLogin(navigate);
   }
 
   return (
@@ -102,7 +114,7 @@ function SignInForm() {
       toast.error("Não foi possível entrar", { description: error.message });
       return;
     }
-    navigate({ to: "/app/week" });
+    goAfterLogin(navigate);
   }
 
   async function onForgot() {
@@ -173,7 +185,7 @@ function SignUpForm() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/app/week` },
+      options: { emailRedirectTo: `${window.location.origin}${safeNext() ?? "/app/week"}` },
     });
     setLoading(false);
     if (error) {
@@ -181,7 +193,7 @@ function SignUpForm() {
       return;
     }
     toast.success("Conta criada!");
-    navigate({ to: "/app/week" });
+    goAfterLogin(navigate);
   }
 
   return (
