@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated")({
   errorComponent: AppErrorFallback,
 });
 
-function AppErrorFallback({ error }: { error: Error }) {
+function AppErrorFallback({ error }: import("@tanstack/react-router").ErrorComponentProps) {
   const router = useRouter();
   const message = error?.message ?? "";
   const isAuthError = /refresh token|jwt|401|unauthorized|not authenticated/i.test(message);

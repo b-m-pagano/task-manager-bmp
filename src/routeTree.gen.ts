@@ -9,38 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
-import { Route as AuthenticatedAppCategoriesRouteImport } from './routes/_authenticated/app.categories'
-import { Route as AuthenticatedAppFocusRouteImport } from './routes/_authenticated/app.focus'
-import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
-import { Route as AuthenticatedAppMonthRouteImport } from './routes/_authenticated/app.month'
-import { Route as AuthenticatedAppProjectsRouteImport } from './routes/_authenticated/app.projects'
-import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
-import { Route as AuthenticatedAppTasksRouteImport } from './routes/_authenticated/app.tasks'
-import { Route as AuthenticatedAppTodayRouteImport } from './routes/_authenticated/app.today'
 import { Route as AuthenticatedAppWeekRouteImport } from './routes/_authenticated/app.week'
-import { Route as ApiPublicDebugOauthRouteImport } from './routes/api/public/debug.oauth'
+import { Route as AuthenticatedAppTodayRouteImport } from './routes/_authenticated/app.today'
+import { Route as AuthenticatedAppTasksRouteImport } from './routes/_authenticated/app.tasks'
+import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
+import { Route as AuthenticatedAppProjectsRouteImport } from './routes/_authenticated/app.projects'
+import { Route as AuthenticatedAppMonthRouteImport } from './routes/_authenticated/app.month'
+import { Route as AuthenticatedAppInboxRouteImport } from './routes/_authenticated/app.inbox'
+import { Route as AuthenticatedAppFocusRouteImport } from './routes/_authenticated/app.focus'
+import { Route as AuthenticatedAppCategoriesRouteImport } from './routes/_authenticated/app.categories'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicGoogleCallbackRouteImport } from './routes/api/public/google.callback'
+import { Route as ApiPublicDebugOauthRouteImport } from './routes/api/public/debug.oauth'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const McpRoute = McpRouteImport.update({
@@ -48,9 +39,18 @@ const McpRoute = McpRouteImport.update({
   path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
@@ -59,14 +59,51 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/app/',
   path: '/app/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppWeekRoute = AuthenticatedAppWeekRouteImport.update({
+  id: '/app/week',
+  path: '/app/week',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppTodayRoute = AuthenticatedAppTodayRouteImport.update({
+  id: '/app/today',
+  path: '/app/today',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppTasksRoute = AuthenticatedAppTasksRouteImport.update({
+  id: '/app/tasks',
+  path: '/app/tasks',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppSettingsRoute =
+  AuthenticatedAppSettingsRouteImport.update({
+    id: '/app/settings',
+    path: '/app/settings',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppProjectsRoute =
+  AuthenticatedAppProjectsRouteImport.update({
+    id: '/app/projects',
+    path: '/app/projects',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppMonthRoute = AuthenticatedAppMonthRouteImport.update({
+  id: '/app/month',
+  path: '/app/month',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppInboxRoute = AuthenticatedAppInboxRouteImport.update({
+  id: '/app/inbox',
+  path: '/app/inbox',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppFocusRoute = AuthenticatedAppFocusRouteImport.update({
+  id: '/app/focus',
+  path: '/app/focus',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAppCategoriesRoute =
@@ -75,56 +112,19 @@ const AuthenticatedAppCategoriesRoute =
     path: '/app/categories',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedAppFocusRoute = AuthenticatedAppFocusRouteImport.update({
-  id: '/app/focus',
-  path: '/app/focus',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAppInboxRoute = AuthenticatedAppInboxRouteImport.update({
-  id: '/app/inbox',
-  path: '/app/inbox',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAppMonthRoute = AuthenticatedAppMonthRouteImport.update({
-  id: '/app/month',
-  path: '/app/month',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAppProjectsRoute =
-  AuthenticatedAppProjectsRouteImport.update({
-    id: '/app/projects',
-    path: '/app/projects',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedAppSettingsRoute =
-  AuthenticatedAppSettingsRouteImport.update({
-    id: '/app/settings',
-    path: '/app/settings',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedAppTasksRoute = AuthenticatedAppTasksRouteImport.update({
-  id: '/app/tasks',
-  path: '/app/tasks',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAppTodayRoute = AuthenticatedAppTodayRouteImport.update({
-  id: '/app/today',
-  path: '/app/today',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAppWeekRoute = AuthenticatedAppWeekRouteImport.update({
-  id: '/app/week',
-  path: '/app/week',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const ApiPublicDebugOauthRoute = ApiPublicDebugOauthRouteImport.update({
-  id: '/api/public/debug/oauth',
-  path: '/api/public/debug/oauth',
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicGoogleCallbackRoute = ApiPublicGoogleCallbackRouteImport.update({
   id: '/api/public/google/callback',
   path: '/api/public/google/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicDebugOauthRoute = ApiPublicDebugOauthRouteImport.update({
+  id: '/api/public/debug/oauth',
+  path: '/api/public/debug/oauth',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -268,25 +268,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp': {
@@ -296,11 +282,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.well-known/oauth-protected-resource': {
@@ -310,74 +310,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.lovable/oauth/consent': {
-      id: '/.lovable/oauth/consent'
-      path: '/.lovable/oauth/consent'
-      fullPath: '/.lovable/oauth/consent'
-      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/app/': {
       id: '/_authenticated/app/'
       path: '/app'
       fullPath: '/app/'
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/app/categories': {
-      id: '/_authenticated/app/categories'
-      path: '/app/categories'
-      fullPath: '/app/categories'
-      preLoaderRoute: typeof AuthenticatedAppCategoriesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/app/focus': {
-      id: '/_authenticated/app/focus'
-      path: '/app/focus'
-      fullPath: '/app/focus'
-      preLoaderRoute: typeof AuthenticatedAppFocusRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/app/inbox': {
-      id: '/_authenticated/app/inbox'
-      path: '/app/inbox'
-      fullPath: '/app/inbox'
-      preLoaderRoute: typeof AuthenticatedAppInboxRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/app/month': {
-      id: '/_authenticated/app/month'
-      path: '/app/month'
-      fullPath: '/app/month'
-      preLoaderRoute: typeof AuthenticatedAppMonthRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/app/projects': {
-      id: '/_authenticated/app/projects'
-      path: '/app/projects'
-      fullPath: '/app/projects'
-      preLoaderRoute: typeof AuthenticatedAppProjectsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/app/settings': {
-      id: '/_authenticated/app/settings'
-      path: '/app/settings'
-      fullPath: '/app/settings'
-      preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/app/tasks': {
-      id: '/_authenticated/app/tasks'
-      path: '/app/tasks'
-      fullPath: '/app/tasks'
-      preLoaderRoute: typeof AuthenticatedAppTasksRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/app/today': {
-      id: '/_authenticated/app/today'
-      path: '/app/today'
-      fullPath: '/app/today'
-      preLoaderRoute: typeof AuthenticatedAppTodayRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/app/week': {
@@ -387,11 +324,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppWeekRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/api/public/debug/oauth': {
-      id: '/api/public/debug/oauth'
-      path: '/api/public/debug/oauth'
-      fullPath: '/api/public/debug/oauth'
-      preLoaderRoute: typeof ApiPublicDebugOauthRouteImport
+    '/_authenticated/app/today': {
+      id: '/_authenticated/app/today'
+      path: '/app/today'
+      fullPath: '/app/today'
+      preLoaderRoute: typeof AuthenticatedAppTodayRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/tasks': {
+      id: '/_authenticated/app/tasks'
+      path: '/app/tasks'
+      fullPath: '/app/tasks'
+      preLoaderRoute: typeof AuthenticatedAppTasksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/settings': {
+      id: '/_authenticated/app/settings'
+      path: '/app/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/projects': {
+      id: '/_authenticated/app/projects'
+      path: '/app/projects'
+      fullPath: '/app/projects'
+      preLoaderRoute: typeof AuthenticatedAppProjectsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/month': {
+      id: '/_authenticated/app/month'
+      path: '/app/month'
+      fullPath: '/app/month'
+      preLoaderRoute: typeof AuthenticatedAppMonthRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/inbox': {
+      id: '/_authenticated/app/inbox'
+      path: '/app/inbox'
+      fullPath: '/app/inbox'
+      preLoaderRoute: typeof AuthenticatedAppInboxRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/focus': {
+      id: '/_authenticated/app/focus'
+      path: '/app/focus'
+      fullPath: '/app/focus'
+      preLoaderRoute: typeof AuthenticatedAppFocusRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/categories': {
+      id: '/_authenticated/app/categories'
+      path: '/app/categories'
+      fullPath: '/app/categories'
+      preLoaderRoute: typeof AuthenticatedAppCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/google/callback': {
@@ -399,6 +392,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/google/callback'
       fullPath: '/api/public/google/callback'
       preLoaderRoute: typeof ApiPublicGoogleCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/debug/oauth': {
+      id: '/api/public/debug/oauth'
+      path: '/api/public/debug/oauth'
+      fullPath: '/api/public/debug/oauth'
+      preLoaderRoute: typeof ApiPublicDebugOauthRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
