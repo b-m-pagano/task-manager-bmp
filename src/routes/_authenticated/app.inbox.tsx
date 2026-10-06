@@ -34,6 +34,78 @@ import {
   listWeekData,
 } from "@/lib/tasks.functions";
 import { cn } from "@/lib/utils";
+import { readSource } from "@/lib/inbox-source";
+import { Copy, ExternalLink, Link2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+const BRIDGE_PROMPTS = [
+  {
+    label: "Gmail — e-mails com estrela",
+    text: "Leia meus e-mails com estrela no Gmail dos últimos 7 dias e importe para a Inbox do Meu Task Manager apenas os que exigem uma ação minha, com estimativa de tempo, prioridade e link do e-mail.",
+  },
+  {
+    label: "Slack — mensagens salvas",
+    text: "Veja minhas mensagens salvas e menções no Slack desta semana e importe as pendências para a Inbox do Meu Task Manager, com link para cada mensagem.",
+  },
+  {
+    label: "Notion — itens atribuídos a mim",
+    text: "Busque no Notion as tarefas atribuídas a mim que ainda estão abertas e importe para a Inbox do Meu Task Manager com o link da página.",
+  },
+  {
+    label: "Ata de reunião colada",
+    text: "Vou colar a ata de uma reunião. Identifique minhas pendências e importe todas de uma vez para a Inbox do Meu Task Manager, com estimativa de tempo para cada uma:",
+  },
+];
+
+function BridgeGuide() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          <Link2 className="mr-1 h-3.5 w-3.5" /> Importar de outras ferramentas
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Trazer pendências de outras ferramentas</DialogTitle>
+          <DialogDescription>
+            No Claude, conecte também o Gmail, Slack ou Notion junto com o Meu Task Manager. Depois
+            copie um dos pedidos abaixo e cole numa conversa — os itens chegam aqui com link para o
+            original, sem duplicar.
+          </DialogDescription>
+        </DialogHeader>
+        <ul className="flex flex-col gap-2">
+          {BRIDGE_PROMPTS.map((p) => (
+            <li key={p.label} className="rounded-md border border-border bg-muted/30 p-2.5">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-foreground">{p.label}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(p.text);
+                    toast.success("Pedido copiado");
+                  }}
+                >
+                  <Copy className="mr-1 h-3 w-3" /> Copiar
+                </Button>
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">{p.text}</p>
+            </li>
+          ))}
+        </ul>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/app/inbox")({
   component: InboxPage,
@@ -237,9 +309,12 @@ function InboxPage() {
             </Button>
           </form>
         ) : (
-          <Button size="sm" className="self-start" onClick={() => setNewOpen(true)}>
-            <Plus className="mr-1 h-3.5 w-3.5" /> Nova na Inbox
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => setNewOpen(true)}>
+              <Plus className="mr-1 h-3.5 w-3.5" /> Nova na Inbox
+            </Button>
+            <BridgeGuide />
+          </div>
         )}
 
         {isLoading && <p className="text-xs text-muted-foreground">Carregando…</p>}
@@ -297,6 +372,7 @@ function InboxRow({
   onEdit: () => void;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const origin = readSource(task);
   const [cursor, setCursor] = useState(new Date());
   const navigate = useNavigate();
 
@@ -323,6 +399,24 @@ function InboxRow({
           <p className="truncate text-[11px] text-muted-foreground">{task.description}</p>
         )}
       </button>
+
+      {origin.source && (
+        <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-medium capitalize text-accent-foreground">
+          {origin.source}
+        </span>
+      )}
+      {origin.url && (
+        <a
+          href={origin.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Abrir original"
+          aria-label="Abrir item original"
+          className="text-muted-foreground transition-colors hover:text-primary"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      )}
 
       <span
         className={cn(
