@@ -5,7 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { MessageSquarePlus, Trash2, ListChecks, CalendarClock, ListTree, CheckCircle2, MoveRight, Plus, History, X } from "lucide-react";
+import { MessageSquarePlus, Trash2, ListChecks, CalendarClock, ListTree, CheckCircle2, MoveRight, Plus, History, X, Mic, Square, Loader2 } from "lucide-react";
+import { useVoiceInput } from "./use-voice-input";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -89,6 +90,7 @@ export function AssistantPanel() {
   };
 
   const [showList, setShowList] = useState(false);
+  const voiceStart = useRef(false);
 
   return (
     <>
@@ -129,17 +131,28 @@ export function AssistantPanel() {
               </aside>
             )}
             <div className="flex min-w-0 flex-1 flex-col">
-              {threadId ? <ThreadLoader key={threadId} threadId={threadId} /> : (
+              {threadId ? <ThreadLoader key={threadId} threadId={threadId} autoListen={voiceStart.current} /> : (
                 <div className="flex flex-1 items-center justify-center"><Shimmer>Abrindo conversa...</Shimmer></div>
               )}
             </div>
           </div>
         </div>
       )}
+      {!open && (
+        <button
+          type="button"
+          aria-label="Falar com o assistente"
+          title="Falar com o assistente"
+          onClick={() => { voiceStart.current = true; setChat("new"); }}
+          className="fixed bottom-[6.75rem] right-[5.5rem] z-50 inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-all hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Mic className="h-4 w-4" />
+        </button>
+      )}
       <button
         type="button"
         aria-label={open ? "Fechar assistente" : "Abrir assistente"}
-        onClick={() => setChat(open ? undefined : "new")}
+        onClick={() => { voiceStart.current = false; setChat(open ? undefined : "new"); }}
         className="fixed bottom-24 right-6 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-all hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {open ? <X className="h-5 w-5 text-foreground" /> : <img src={mark} alt="" className="h-10 w-10 object-contain" />}
@@ -148,7 +161,7 @@ export function AssistantPanel() {
   );
 }
 
-function ThreadLoader({ threadId }: { threadId: string }) {
+function ThreadLoader({ threadId, autoListen }: { threadId: string; autoListen: boolean }) {
   const getFn = useServerFn(getAssistantMessages);
   const q = useQuery({
     queryKey: ["assistant-messages", threadId],
@@ -157,10 +170,10 @@ function ThreadLoader({ threadId }: { threadId: string }) {
   });
   if (q.isError) return <p className="p-4 text-sm text-destructive">Não consegui abrir essa conversa.</p>;
   if (!q.data) return <div className="flex flex-1 items-center justify-center"><Shimmer>Carregando...</Shimmer></div>;
-  return <ChatWindow threadId={threadId} initial={q.data as unknown as UIMessage[]} />;
+  return <ChatWindow threadId={threadId} initial={q.data as unknown as UIMessage[]} autoListen={autoListen} />;
 }
 
-function ChatWindow({ threadId, initial }: { threadId: string; initial: UIMessage[] }) {
+function ChatWindow({ threadId, initial, autoListen }: { threadId: string; initial: UIMessage[]; autoListen: boolean }) {
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -194,14 +207,20 @@ function ChatWindow({ threadId, initial }: { threadId: string; initial: UIMessag
     },
   });
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
-
   const send = (t: string) => {
     if (!t.trim() || status === "submitted" || status === "streaming") return;
     void sendMessage({ text: t.trim() });
     setText("");
     inputRef.current?.focus();
   };
+
+  const voice = useVoiceInput((t) => send(t), (p) => setText(p));
+  const autoVoice = useRef(autoListen);
+  useEffect(() => {
+    inputRef.current?.focus();
+    if (autoVoice.current) { autoVoice.current = false; void voice.start(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
@@ -250,14 +269,33 @@ function ChatWindow({ threadId, initial }: { threadId: string; initial: UIMessag
         <ConversationScrollButton />
       </Conversation>
       <div className="border-t p-3">
+        {voice.state === "recording" && (
+          <p className="mb-2 flex items-center gap-2 text-xs text-destructive">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-destructive" /> Ouvindo… clique no microfone para enviar
+          </p>
+        )}
+        {voice.state === "transcribing" && <Shimmer className="mb-2 text-xs">Transcrevendo…</Shimmer>}
         <PromptInput onSubmit={(msg) => send(msg.text ?? text)}>
           <PromptInputTextarea
             ref={inputRef}
             value={text}
             onChange={(e) => setText(e.currentTarget.value)}
-            placeholder="Ex.: atrasei 30 min, empurre o resto do dia"
+            placeholder="Fale ou escreva: crie uma tarefa de 30 min amanhã às 10h…"
           />
-          <PromptInputFooter className="justify-end">
+          <PromptInputFooter className="justify-end gap-1">
+            <Button
+              type="button"
+              size="icon"
+              variant={voice.state === "recording" ? "destructive" : "ghost"}
+              className="h-8 w-8"
+              title={voice.state === "recording" ? "Parar e enviar" : "Falar"}
+              aria-label={voice.state === "recording" ? "Parar gravação e enviar" : "Falar com o assistente"}
+              disabled={voice.state === "transcribing" || status === "streaming" || status === "submitted"}
+              onClick={() => void voice.toggle()}
+            >
+              {voice.state === "transcribing" ? <Loader2 className="h-4 w-4 animate-spin" />
+                : voice.state === "recording" ? <Square className="h-3.5 w-3.5" /> : <Mic className="h-4 w-4" />}
+            </Button>
             <PromptInputSubmit status={status} onStop={stop} disabled={!text.trim() && status === "ready"} />
           </PromptInputFooter>
         </PromptInput>
