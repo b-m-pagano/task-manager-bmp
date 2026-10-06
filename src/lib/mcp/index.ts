@@ -1,12 +1,5 @@
 import { auth, defineMcp } from "@lovable.dev/mcp-js";
-import listTasks from "./tools/list-tasks";
-import addToInbox from "./tools/add-to-inbox";
-import setTaskStatus from "./tools/set-task-status";
-import decomposeTask from "./tools/decompose-task";
-import createTaskWithSubtasks from "./tools/create-task-with-subtasks";
-import listSubtasks from "./tools/list-subtasks";
-import { getDayScheduleTool, replanDayTool, scheduleTaskTool } from "./tools/schedule-tools";
-import importToInbox from "./tools/import-to-inbox";
+import { mcpTools } from "./tools/registry";
 
 const projectRef = import.meta.env["VITE_SUPABASE_PROJECT_ID"] ?? "project-ref-unset";
 
@@ -20,5 +13,5 @@ export default defineMcp({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
   }),
-  tools: [listTasks, addToInbox, importToInbox, setTaskStatus, decomposeTask, createTaskWithSubtasks, listSubtasks, getDayScheduleTool, scheduleTaskTool, replanDayTool],
+  tools: mcpTools,
 });
