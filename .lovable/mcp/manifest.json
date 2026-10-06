@@ -12,7 +12,7 @@
   "mcp": {
     "server": {
       "name": "meu-task-manager",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "title": "Meu Task Manager"
     },
     "tools": [
@@ -56,7 +56,7 @@
       {
         "name": "add_task_to_inbox",
         "title": "Add task to inbox",
-        "description": "Capture a new task in the signed-in user's inbox to be scheduled later.",
+        "description": "Capture one task in the user's inbox, optionally with its origin tool and a link to the original item.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -69,7 +69,18 @@
             "title": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 200
+              "maxLength": 200,
+              "description": "Short actionable task title."
+            },
+            "description": {
+              "description": "One-line summary of what needs to be done.",
+              "type": "string",
+              "maxLength": 500
+            },
+            "notes": {
+              "description": "Context: sender, relevant excerpt, deadline mentioned.",
+              "type": "string",
+              "maxLength": 4000
             },
             "estimated_minutes": {
               "type": "integer",
@@ -84,10 +95,96 @@
                 "high",
                 "urgent"
               ]
+            },
+            "source": {
+              "description": "Origin tool, e.g. gmail, slack, notion, github.",
+              "type": "string",
+              "maxLength": 30
+            },
+            "source_url": {
+              "description": "Direct link to the original email/message/page.",
+              "type": "string",
+              "maxLength": 2000,
+              "format": "uri"
             }
           },
           "required": [
             "title"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "import_to_inbox",
+        "title": "Import items to inbox",
+        "description": "Batch-import up to 25 action items gathered from other tools (emails, chat messages, docs) into the user's inbox. Skips items whose source_url is already in the inbox.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "items": {
+              "minItems": 1,
+              "maxItems": 25,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Short actionable task title."
+                  },
+                  "description": {
+                    "description": "One-line summary of what needs to be done.",
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "notes": {
+                    "description": "Context: sender, relevant excerpt, deadline mentioned.",
+                    "type": "string",
+                    "maxLength": 4000
+                  },
+                  "estimated_minutes": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 720
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high",
+                      "urgent"
+                    ]
+                  },
+                  "source": {
+                    "description": "Origin tool, e.g. gmail, slack, notion, github.",
+                    "type": "string",
+                    "maxLength": 30
+                  },
+                  "source_url": {
+                    "description": "Direct link to the original email/message/page.",
+                    "type": "string",
+                    "maxLength": 2000,
+                    "format": "uri"
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              }
+            }
+          },
+          "required": [
+            "items"
           ],
           "additionalProperties": false
         },
