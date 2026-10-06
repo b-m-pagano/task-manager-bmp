@@ -12,7 +12,7 @@
   "mcp": {
     "server": {
       "name": "meu-task-manager",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "title": "Meu Task Manager"
     },
     "tools": [
@@ -271,6 +271,238 @@
           },
           "required": [
             "task_id"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_day_schedule",
+        "title": "Get day schedule",
+        "description": "Read one day's tasks plus Google Calendar events (events are fixed and must never be overlapped).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "day": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Day YYYY-MM-DD"
+            },
+            "tz_offset_minutes": {
+              "description": "User UTC offset in minutes (São Paulo = -180). Defaults to -180.",
+              "type": "integer",
+              "minimum": -720,
+              "maximum": 840
+            }
+          },
+          "required": [
+            "day"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "schedule_task",
+        "title": "Schedule task",
+        "description": "Move a task to a day and optionally a start time.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "task_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "day": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Day YYYY-MM-DD"
+            },
+            "start_time": {
+              "type": "string",
+              "pattern": "^\\d{2}:\\d{2}$",
+              "description": "Local time HH:MM"
+            },
+            "tz_offset_minutes": {
+              "description": "User UTC offset in minutes (São Paulo = -180). Defaults to -180.",
+              "type": "integer",
+              "minimum": -720,
+              "maximum": 840
+            }
+          },
+          "required": [
+            "task_id",
+            "day"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "replan_day",
+        "title": "Replan rest of day",
+        "description": "Reorganize the rest of a day and save it. You decide order, priority, durations, done/tomorrow and new items; the app computes start times so nothing overlaps Google Calendar events. Call get_day_schedule first.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "day": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Day YYYY-MM-DD"
+            },
+            "now_time": {
+              "type": "string",
+              "pattern": "^\\d{2}:\\d{2}$",
+              "description": "Current local time; only the time after it is replanned."
+            },
+            "instruction": {
+              "type": "object",
+              "properties": {
+                "order": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "IDs of existing pending tasks in the desired new order (most important first)."
+                },
+                "changes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "taskId": {
+                        "type": "string"
+                      },
+                      "priority": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "urgent"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "durationMin": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 5,
+                            "maximum": 720
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "New duration, e.g. longer when running late."
+                      },
+                      "markDone": {
+                        "type": "boolean"
+                      },
+                      "moveToTomorrow": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "taskId",
+                      "priority",
+                      "durationMin",
+                      "markDone",
+                      "moveToTomorrow"
+                    ]
+                  },
+                  "description": "Only tasks that change; null fields = unchanged."
+                },
+                "newItems": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "durationMin": {
+                        "type": "integer",
+                        "minimum": 5,
+                        "maximum": 720
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": [
+                          "low",
+                          "medium",
+                          "high",
+                          "urgent"
+                        ]
+                      },
+                      "fixedStartMinute": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1439
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "Minutes since 00:00 for a fixed-time appointment, else null."
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "durationMin",
+                      "priority",
+                      "fixedStartMinute"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "order",
+                "changes",
+                "newItems"
+              ]
+            },
+            "tz_offset_minutes": {
+              "description": "User UTC offset in minutes (São Paulo = -180). Defaults to -180.",
+              "type": "integer",
+              "minimum": -720,
+              "maximum": 840
+            }
+          },
+          "required": [
+            "day",
+            "now_time",
+            "instruction"
           ],
           "additionalProperties": false
         },
