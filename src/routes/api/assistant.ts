@@ -186,8 +186,10 @@ export const Route = createFileRoute("/api/assistant")({
         return result.toUIMessageStreamResponse({
           originalMessages: messages,
           onFinish: async ({ messages: all }) => {
-            const rows = all.map((m) => ({
+            const base = Date.now() - all.length;
+            const rows = all.map((m, i) => ({
               thread_id: threadId, user_id: userId, message_id: m.id, message: m as never,
+              created_at: new Date(base + i).toISOString(),
             }));
             const { error } = await sb.from("assistant_messages").upsert(rows, { onConflict: "thread_id,message_id" });
             if (error) console.error("[assistant] save failed", error.message);

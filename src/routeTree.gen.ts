@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as ApiAssistantRouteImport } from './routes/api/assistant'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppCategoriesRouteImport } from './routes/_authenticated/app.categories'
@@ -59,6 +60,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAssistantRoute = ApiAssistantRouteImport.update({
+  id: '/api/assistant',
+  path: '/api/assistant',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/api/assistant': typeof ApiAssistantRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/app/categories': typeof AuthenticatedAppCategoriesRoute
   '/app/focus': typeof AuthenticatedAppFocusRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/api/assistant': typeof ApiAssistantRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/app/categories': typeof AuthenticatedAppCategoriesRoute
   '/app/focus': typeof AuthenticatedAppFocusRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/api/assistant': typeof ApiAssistantRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/app/categories': typeof AuthenticatedAppCategoriesRoute
   '/_authenticated/app/focus': typeof AuthenticatedAppFocusRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/reset-password'
     | '/.well-known/oauth-protected-resource'
+    | '/api/assistant'
     | '/.lovable/oauth/consent'
     | '/app/categories'
     | '/app/focus'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/reset-password'
     | '/.well-known/oauth-protected-resource'
+    | '/api/assistant'
     | '/.lovable/oauth/consent'
     | '/app/categories'
     | '/app/focus'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/reset-password'
     | '/.well-known/oauth-protected-resource'
+    | '/api/assistant'
     | '/.lovable/oauth/consent'
     | '/_authenticated/app/categories'
     | '/_authenticated/app/focus'
@@ -261,6 +273,7 @@ export interface RootRouteChildren {
   McpRoute: typeof McpRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  ApiAssistantRoute: typeof ApiAssistantRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicDebugOauthRoute: typeof ApiPublicDebugOauthRoute
   ApiPublicGoogleCallbackRoute: typeof ApiPublicGoogleCallbackRoute
@@ -308,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/.well-known/oauth-protected-resource'
       fullPath: '/.well-known/oauth-protected-resource'
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/assistant': {
+      id: '/api/assistant'
+      path: '/api/assistant'
+      fullPath: '/api/assistant'
+      preLoaderRoute: typeof ApiAssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.lovable/oauth/consent': {
@@ -442,6 +462,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  ApiAssistantRoute: ApiAssistantRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicDebugOauthRoute: ApiPublicDebugOauthRoute,
   ApiPublicGoogleCallbackRoute: ApiPublicGoogleCallbackRoute,
