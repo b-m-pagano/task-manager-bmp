@@ -101,7 +101,7 @@ export const Route = createFileRoute("/api/assistant")({
             execute: async ({ title, estimated_minutes, priority, day, start_time }) => {
               const { data, error } = await sb.from("tasks").insert({
                 user_id: userId, title, estimated_minutes, priority,
-                scheduled_day: day, is_inbox: !day,
+                scheduled_day: day ?? undefined, is_inbox: !day,
                 scheduled_start: day && start_time ? stamp(day, start_time) : null,
                 scheduled_end: day && start_time ? addMin(day, start_time, estimated_minutes) : null,
               }).select("id,title").single();
