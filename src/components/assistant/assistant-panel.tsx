@@ -96,7 +96,7 @@ export function AssistantPanel() {
         <div
           role="dialog"
           aria-label="Assistente"
-          className="fixed bottom-24 right-6 z-50 flex h-[min(640px,calc(100vh-8rem))] w-[min(460px,calc(100vw-2rem))] origin-bottom-right animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl duration-200"
+          className="fixed bottom-44 right-6 z-50 flex h-[min(600px,calc(100vh-12rem))] w-[min(460px,calc(100vw-2rem))] origin-bottom-right animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl duration-200"
         >
           <div className="flex items-center gap-2 border-b px-3 py-2">
             <Mark size={24} />
@@ -140,7 +140,7 @@ export function AssistantPanel() {
         type="button"
         aria-label={open ? "Fechar assistente" : "Abrir assistente"}
         onClick={() => setChat(open ? undefined : "new")}
-        className="fixed bottom-6 right-6 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-all hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="fixed bottom-24 right-6 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-all hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {open ? <X className="h-5 w-5 text-foreground" /> : <img src={mark} alt="" className="h-10 w-10 object-contain" />}
       </button>
