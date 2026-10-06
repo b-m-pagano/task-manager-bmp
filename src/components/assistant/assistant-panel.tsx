@@ -16,7 +16,7 @@ import { PromptInput, PromptInputFooter, PromptInputSubmit, PromptInputTextarea 
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "@/components/ai-elements/tool";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { supabase } from "@/integrations/supabase/client";
-import { getTzOffsetMinutes } from "@/lib/timezone";
+import { getLocalTzOffsetMinutes } from "@/lib/timezone";
 import {
   createAssistantThread, deleteAssistantThread, getAssistantMessages, listAssistantThreads,
 } from "@/lib/ai/assistant.functions";
@@ -152,7 +152,7 @@ function ChatWindow({ threadId, initial }: { threadId: string; initial: UIMessag
       const now = new Date();
       return {
         threadId,
-        tz_offset_minutes: getTzOffsetMinutes(),
+        tz_offset_minutes: getLocalTzOffsetMinutes(),
         today: format(now, "yyyy-MM-dd"),
         now: format(now, "HH:mm"),
       };
