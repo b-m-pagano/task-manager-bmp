@@ -74,7 +74,7 @@ export function TextReplanDialog({ day }: { day: string }) {
           <MessageSquareText className="mr-1 h-3.5 w-3.5" /> Ajustar dia
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto overflow-x-hidden sm:max-w-lg [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Ajustar o resto do dia</DialogTitle>
           <DialogDescription>
