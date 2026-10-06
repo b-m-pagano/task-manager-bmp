@@ -5,11 +5,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { MessageSquarePlus, Trash2, ListChecks, CalendarClock, ListTree, CheckCircle2, MoveRight, Plus } from "lucide-react";
+import { MessageSquarePlus, Trash2, ListChecks, CalendarClock, ListTree, CheckCircle2, MoveRight, Plus, History, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { PromptInput, PromptInputFooter, PromptInputSubmit, PromptInputTextarea } from "@/components/ai-elements/prompt-input";
@@ -89,43 +88,63 @@ export function AssistantPanel() {
     if (id === threadId) setChat("new");
   };
 
+  const [showList, setShowList] = useState(false);
+
   return (
-    <Sheet open={open} onOpenChange={(o) => setChat(o ? "new" : undefined)}>
-      <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Mark size={18} /> Assistente
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
-        <SheetHeader className="border-b px-4 py-3">
-          <SheetTitle className="flex items-center gap-2 text-base"><Mark /> Assistente</SheetTitle>
-        </SheetHeader>
-        <div className="flex min-h-0 flex-1">
-          <aside className="flex w-40 shrink-0 flex-col border-r bg-muted/30">
-            <Button variant="ghost" size="sm" className="m-2 justify-start gap-1.5" onClick={startNew}>
-              <MessageSquarePlus className="h-4 w-4" /> Nova
+    <>
+      {open && (
+        <div
+          role="dialog"
+          aria-label="Assistente"
+          className="fixed bottom-44 right-6 z-50 flex h-[min(600px,calc(100vh-12rem))] w-[min(460px,calc(100vw-2rem))] origin-bottom-right animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl duration-200"
+        >
+          <div className="flex items-center gap-2 border-b px-3 py-2">
+            <Mark size={24} />
+            <span className="flex-1 text-sm font-semibold">Assistente</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Conversas" onClick={() => setShowList((v) => !v)}>
+              <History className="h-4 w-4" />
             </Button>
-            <div className="flex-1 overflow-y-auto px-1 pb-2">
-              {(threads.data ?? []).map((t) => (
-                <div key={t.id} className={`group flex items-center rounded-md text-xs ${t.id === threadId ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"}`}>
-                  <button type="button" className="min-w-0 flex-1 truncate px-2 py-1.5 text-left" onClick={() => setChat(t.id)} title={t.title}>
-                    {t.title}
-                  </button>
-                  <button type="button" aria-label="Apagar conversa" className="p-1 opacity-0 group-hover:opacity-100" onClick={() => remove(t.id)}>
-                    <Trash2 className="h-3 w-3 text-muted-foreground" />
-                  </button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Nova conversa" onClick={startNew}>
+              <MessageSquarePlus className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Fechar" onClick={() => setChat(undefined)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="relative flex min-h-0 flex-1">
+            {showList && (
+              <aside className="absolute inset-y-0 left-0 z-10 flex w-52 flex-col border-r bg-card shadow-lg">
+                <div className="flex-1 overflow-y-auto p-1">
+                  {(threads.data ?? []).map((t) => (
+                    <div key={t.id} className={`group flex items-center rounded-md text-xs ${t.id === threadId ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"}`}>
+                      <button type="button" className="min-w-0 flex-1 truncate px-2 py-1.5 text-left" onClick={() => { setChat(t.id); setShowList(false); }} title={t.title}>
+                        {t.title}
+                      </button>
+                      <button type="button" aria-label="Apagar conversa" className="p-1 opacity-0 group-hover:opacity-100" onClick={() => remove(t.id)}>
+                        <Trash2 className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </aside>
-          <div className="flex min-w-0 flex-1 flex-col">
-            {threadId ? <ThreadLoader key={threadId} threadId={threadId} /> : (
-              <div className="flex flex-1 items-center justify-center"><Shimmer>Abrindo conversa...</Shimmer></div>
+              </aside>
             )}
+            <div className="flex min-w-0 flex-1 flex-col">
+              {threadId ? <ThreadLoader key={threadId} threadId={threadId} /> : (
+                <div className="flex flex-1 items-center justify-center"><Shimmer>Abrindo conversa...</Shimmer></div>
+              )}
+            </div>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      )}
+      <button
+        type="button"
+        aria-label={open ? "Fechar assistente" : "Abrir assistente"}
+        onClick={() => setChat(open ? undefined : "new")}
+        className="fixed bottom-24 right-6 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-all hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {open ? <X className="h-5 w-5 text-foreground" /> : <img src={mark} alt="" className="h-10 w-10 object-contain" />}
+      </button>
+    </>
   );
 }
 

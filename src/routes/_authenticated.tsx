@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
 import { useAuthReady } from "@/hooks/use-auth-ready";
 import { clearLocalSession } from "@/lib/auth";
+import { AssistantPanel } from "@/components/assistant/assistant-panel";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AppShell,
@@ -68,6 +69,7 @@ function AppShell() {
           </main>
         </SidebarInset>
       </div>
+      <AssistantPanel />
     </SidebarProvider>
   );
 }
