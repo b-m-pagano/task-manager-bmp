@@ -29,6 +29,9 @@ const TOOL_LABELS: Record<string, { label: string; icon: typeof ListChecks }> = 
   decompose_task: { label: "Quebrando em passos", icon: ListTree },
   set_task_status: { label: "Mudando situação", icon: CheckCircle2 },
   move_task: { label: "Movendo tarefa", icon: MoveRight },
+  replan_day: { label: "Replanejando o dia", icon: CalendarClock },
+  list_subtasks: { label: "Vendo os passos", icon: ListTree },
+  create_task_with_subtasks: { label: "Criando tarefa com passos", icon: ListTree },
 };
 const SUGGESTIONS = [
   "O que tenho para hoje?",

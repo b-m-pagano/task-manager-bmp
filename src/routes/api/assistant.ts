@@ -5,6 +5,8 @@ import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage }
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
 import { formatTzOffset } from "@/lib/timezone";
+import { createTaskWithSubtasks, getDaySchedule, listSubtasks, parseTime, replanDay, scheduleTask } from "@/lib/agent/operations";
+import { ReplanInstructionSchema } from "@/lib/agent/schemas";
 
 const Body = z.object({
   threadId: z.string().uuid(),
@@ -77,16 +79,35 @@ export const Route = createFileRoute("/api/assistant")({
             description: "Agenda de um dia: tarefas e eventos do Google Calendar (eventos são intocáveis).",
             inputSchema: z.object({ day: Day }),
             execute: async ({ day }) => {
-              const [t, e] = await Promise.all([
-                sb.from("tasks").select("id,title,status,priority,scheduled_start,scheduled_end,estimated_minutes")
-                  .eq("scheduled_day", day).eq("is_inbox", false).is("parent_id", null).order("scheduled_start"),
-                sb.from("calendar_events").select("title,starts_at,ends_at,all_day")
-                  .lt("starts_at", stamp(day, "23:59")).gt("ends_at", stamp(day, "00:00")),
-              ]);
-              return fail(t.error) ?? {
-                tasks: (t.data ?? []).map((x) => ({ ...x, scheduled_start: localTime(x.scheduled_start), scheduled_end: localTime(x.scheduled_end) })),
-                calendar: (e.data ?? []).map((x) => ({ title: x.title, all_day: x.all_day, start: localTime(x.starts_at), end: localTime(x.ends_at) })),
-              };
+              try { const r = await getDaySchedule(sb, day, tz); return { tasks: r.tasks, calendar: r.calendar }; }
+              catch (e) { return { error: (e as Error).message }; }
+            },
+          }),
+          replan_day: tool({
+            description: "Reorganiza e SALVA o restante do dia (atrasos, compromissos novos, prioridades). Você decide ordem/prioridade/duração/novos itens; o app calcula os horários sem sobrepor o Google Calendar. Chame get_day_schedule antes.",
+            inputSchema: z.object({ day: Day, instruction: ReplanInstructionSchema }),
+            execute: async ({ day, instruction }) => {
+              try { return await replanDay(sb, userId, { day, now_minute: day === today ? parseTime(now) : 0, tz, instruction }); }
+              catch (e) { return { error: (e as Error).message }; }
+            },
+          }),
+          list_subtasks: tool({
+            description: "Mostra os micro-passos de uma tarefa e o progresso.",
+            inputSchema: z.object({ task_id: z.string().uuid() }),
+            execute: async ({ task_id }) => {
+              try { return await listSubtasks(sb, task_id); } catch (e) { return { error: (e as Error).message }; }
+            },
+          }),
+          create_task_with_subtasks: tool({
+            description: "Cria uma tarefa nova já com checklist de micro-passos (5–25 min). Sem dia vai para a Inbox.",
+            inputSchema: z.object({
+              title: z.string().min(1).max(200),
+              steps: z.array(z.object({ title: z.string().min(1).max(200), estimated_minutes: z.number().int().min(5).max(25) })).min(1).max(12),
+              day: Day.nullable(),
+              priority: z.enum(["low", "medium", "high", "urgent"]).nullable(),
+            }),
+            execute: async (a) => {
+              try { return await createTaskWithSubtasks(sb, userId, a); } catch (e) { return { error: (e as Error).message }; }
             },
           }),
           create_task: tool({
@@ -142,14 +163,7 @@ export const Route = createFileRoute("/api/assistant")({
             description: "Move/agenda uma tarefa para um dia e, opcionalmente, um horário. Nunca sobreponha eventos do calendário.",
             inputSchema: z.object({ task_id: z.string().uuid(), day: Day, start_time: Time.nullable() }),
             execute: async ({ task_id, day, start_time }) => {
-              const { data: t } = await sb.from("tasks").select("estimated_minutes").eq("id", task_id).maybeSingle();
-              const mins = t?.estimated_minutes ?? 30;
-              const { error } = await sb.from("tasks").update({
-                scheduled_day: day, is_inbox: false,
-                scheduled_start: start_time ? stamp(day, start_time) : null,
-                scheduled_end: start_time ? addMin(day, start_time, mins) : null,
-              }).eq("id", task_id);
-              return fail(error) ?? { ok: true };
+              try { return await scheduleTask(sb, { task_id, day, start_time, tz }); } catch (e) { return { error: (e as Error).message }; }
             },
           }),
         };
@@ -166,7 +180,7 @@ export const Route = createFileRoute("/api/assistant")({
             `Você é o assistente do BMP Task Manager, para um usuário com TDAH. Responda em português, curto e calmo. ` +
             `Hoje é ${today}, agora são ${now} (horário local). Expediente 07:00–18:00; avise se algo passar das 18h. ` +
             `Use as ferramentas para ler e alterar tarefas; antes de mexer numa tarefa, encontre o ID com list_tasks. ` +
-            `Eventos do Google Calendar nunca podem ser alterados nem sobrepostos. Ao quebrar tarefas, use passos concretos de até 20 min. ` +
+            `Eventos do Google Calendar nunca podem ser alterados nem sobrepostos. Ao quebrar tarefas, use passos concretos de até 20 min (decompose_task ou create_task_with_subtasks). Para atrasos, compromissos novos ou mudanças de prioridade, use replan_day (os horários são calculados pelo app). ` +
             `Depois de agir, diga em uma ou duas frases o que mudou.`,
           messages: await convertToModelMessages(messages),
           tools,
