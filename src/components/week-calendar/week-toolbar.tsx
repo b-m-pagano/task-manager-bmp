@@ -6,6 +6,7 @@ import { QuickAddBar } from "@/components/tasks/quick-add-bar";
 import { MiniCalendar } from "./mini-calendar";
 import { AiInsightsPanel } from "./ai-insights-panel";
 import { TextReplanDialog } from "./text-replan-dialog";
+import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { CalendarSyncButton } from "./calendar-sync-button";
 import type { WeekBoard } from "./use-week-board";
 
@@ -109,6 +110,7 @@ export function WeekToolbar({
       >
         <ArrowDownToLine className="mr-1 h-3.5 w-3.5" /> Migrar pendentes
       </Button>
+      <AssistantPanel />
       <TextReplanDialog day={selectedIso} />
       <AiInsightsPanel
         day={selectedIso}
