@@ -14,6 +14,7 @@ import {
   Tags,
   Settings,
   Focus,
+  Wrench,
 } from "lucide-react";
 
 import {
@@ -43,7 +44,10 @@ const orgItems = [
   { title: "Categorias", url: "/app/categories", icon: Tags },
 ];
 
-const systemItems = [{ title: "Configurações", url: "/app/settings", icon: Settings }];
+const systemItems = [
+  { title: "Ferramentas MCP", url: "/app/tools", icon: Wrench },
+  { title: "Configurações", url: "/app/settings", icon: Settings },
+];
 
 export function AppSidebar() {
   const currentPath = useRouterState({ select: (r) => r.location.pathname });

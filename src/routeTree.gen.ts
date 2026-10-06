@@ -26,6 +26,7 @@ import { Route as AuthenticatedAppProjectsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app.settings'
 import { Route as AuthenticatedAppTasksRouteImport } from './routes/_authenticated/app.tasks'
 import { Route as AuthenticatedAppTodayRouteImport } from './routes/_authenticated/app.today'
+import { Route as AuthenticatedAppToolsRouteImport } from './routes/_authenticated/app.tools'
 import { Route as AuthenticatedAppWeekRouteImport } from './routes/_authenticated/app.week'
 import { Route as ApiPublicDebugOauthRouteImport } from './routes/api/public/debug.oauth'
 import { Route as ApiPublicGoogleCallbackRouteImport } from './routes/api/public/google.callback'
@@ -118,6 +119,11 @@ const AuthenticatedAppTodayRoute = AuthenticatedAppTodayRouteImport.update({
   path: '/app/today',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAppToolsRoute = AuthenticatedAppToolsRouteImport.update({
+  id: '/app/tools',
+  path: '/app/tools',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAppWeekRoute = AuthenticatedAppWeekRouteImport.update({
   id: '/app/week',
   path: '/app/week',
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/tasks': typeof AuthenticatedAppTasksRoute
   '/app/today': typeof AuthenticatedAppTodayRoute
+  '/app/tools': typeof AuthenticatedAppToolsRoute
   '/app/week': typeof AuthenticatedAppWeekRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/api/public/debug/oauth': typeof ApiPublicDebugOauthRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/tasks': typeof AuthenticatedAppTasksRoute
   '/app/today': typeof AuthenticatedAppTodayRoute
+  '/app/tools': typeof AuthenticatedAppToolsRoute
   '/app/week': typeof AuthenticatedAppWeekRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/api/public/debug/oauth': typeof ApiPublicDebugOauthRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/tasks': typeof AuthenticatedAppTasksRoute
   '/_authenticated/app/today': typeof AuthenticatedAppTodayRoute
+  '/_authenticated/app/tools': typeof AuthenticatedAppToolsRoute
   '/_authenticated/app/week': typeof AuthenticatedAppWeekRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/api/public/debug/oauth': typeof ApiPublicDebugOauthRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/tasks'
     | '/app/today'
+    | '/app/tools'
     | '/app/week'
     | '/app/'
     | '/api/public/debug/oauth'
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/tasks'
     | '/app/today'
+    | '/app/tools'
     | '/app/week'
     | '/app'
     | '/api/public/debug/oauth'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/settings'
     | '/_authenticated/app/tasks'
     | '/_authenticated/app/today'
+    | '/_authenticated/app/tools'
     | '/_authenticated/app/week'
     | '/_authenticated/app/'
     | '/api/public/debug/oauth'
@@ -400,6 +412,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppTodayRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/tools': {
+      id: '/_authenticated/app/tools'
+      path: '/app/tools'
+      fullPath: '/app/tools'
+      preLoaderRoute: typeof AuthenticatedAppToolsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/app/week': {
       id: '/_authenticated/app/week'
       path: '/app/week'
@@ -433,6 +452,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppTasksRoute: typeof AuthenticatedAppTasksRoute
   AuthenticatedAppTodayRoute: typeof AuthenticatedAppTodayRoute
+  AuthenticatedAppToolsRoute: typeof AuthenticatedAppToolsRoute
   AuthenticatedAppWeekRoute: typeof AuthenticatedAppWeekRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
 }
@@ -446,6 +466,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppTasksRoute: AuthenticatedAppTasksRoute,
   AuthenticatedAppTodayRoute: AuthenticatedAppTodayRoute,
+  AuthenticatedAppToolsRoute: AuthenticatedAppToolsRoute,
   AuthenticatedAppWeekRoute: AuthenticatedAppWeekRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
 }
