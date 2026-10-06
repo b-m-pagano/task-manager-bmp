@@ -29,6 +29,6 @@ describe("buildTextReplan", () => {
 
   it("sends items that do not fit to overflow", () => {
     const r = buildTextReplan(tasks, [], { order: [], changes: [], newItems: [] }, { fromMinute: 1400, dayEnd: 1440 });
-    expect(r.overflow.length).toBe(2);
+    expect(r.overflow.map((o) => o.id)).toEqual(["a"]);
   });
 });

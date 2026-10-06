@@ -125,7 +125,7 @@ export const proposeTextReplan = createServerFn({ method: "POST" })
         "Inclua em 'changes' apenas tarefas alteradas, com null nos campos sem mudança. Nunca invente ids. " +
         "Eventos do calendário são intocáveis; os horários finais serão calculados pelo sistema. 'summary': 1-2 frases em português explicando o que mudou.",
       prompt,
-      experimental_output: Output.object({ schema: InstructionSchema }),
+      output: Output.object({ schema: InstructionSchema }),
       providerOptions: {
         openai: {
           forceReasoning: true,
@@ -137,7 +137,7 @@ export const proposeTextReplan = createServerFn({ method: "POST" })
       },
     });
     await result.consumeStream();
-    const instr = await result.experimental_output;
+    const instr = await result.output;
 
     const plan = buildTextReplan(taskList, blocks, instr, {
       fromMinute: Math.max(7 * 60, data.now_minute),
