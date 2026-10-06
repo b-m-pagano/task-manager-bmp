@@ -39,7 +39,7 @@ export const getAssistantMessages = createServerFn({ method: "GET" })
       .from("assistant_messages").select("message")
       .eq("thread_id", data.id).order("created_at");
     if (error) throw new Error(error.message);
-    return JSON.parse(JSON.stringify((rows ?? []).map((r) => r.message))) as never as string;
+    return (rows ?? []).map((r) => r.message);
   });
 
 export function parseMessages(raw: unknown): UIMessage[] {

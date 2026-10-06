@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/app/week")({
   component: WeekPage,
   head: () => ({ meta: [{ title: "Semana — FocusQueue" }] }),
   validateSearch: (search) =>
-    z.object({ day: z.string().regex(ISO_DATE).optional() }).parse(search),
+    z.object({ day: z.string().regex(ISO_DATE).optional(), chat: z.string().optional() }).parse(search),
 });
 
 function isoDay(d: Date) {
