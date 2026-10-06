@@ -126,6 +126,7 @@ type InboxTask = {
   scheduled_start: string | null;
   due_date: string | null;
   parent_id: string | null;
+  tags?: string[] | null;
 };
 
 const priorityChip: Record<InboxTask["priority"], string> = {
