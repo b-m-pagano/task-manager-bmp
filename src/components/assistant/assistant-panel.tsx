@@ -42,7 +42,7 @@ const SUGGESTIONS = [
 function Mark({ size = 28 }: { size?: number }) {
   return (
     <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-card ring-1 ring-border" style={{ width: size, height: size }}>
-      <img src={mark} alt="Assistente" width={size} height={size} className="h-full w-full object-contain" />
+      <img src={mark.url} alt="Assistente" width={size} height={size} className="h-full w-full object-contain" />
     </span>
   );
 }
@@ -155,7 +155,7 @@ export function AssistantPanel() {
         onClick={() => { voiceStart.current = false; setChat(open ? undefined : "new"); }}
         className="fixed bottom-24 right-6 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-all hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        {open ? <X className="h-5 w-5 text-foreground" /> : <img src={mark} alt="" className="h-10 w-10 object-contain" />}
+        {open ? <X className="h-5 w-5 text-foreground" /> : <img src={mark.url} alt="" className="h-10 w-10 object-contain" />}
       </button>
     </>
   );
