@@ -20,7 +20,7 @@ import { getLocalTzOffsetMinutes } from "@/lib/timezone";
 import {
   createAssistantThread, deleteAssistantThread, getAssistantMessages, listAssistantThreads,
 } from "@/lib/ai/assistant.functions";
-import mark from "@/assets/assistant-mark.png";
+import mark from "@/assets/assistant-logo.jpg.asset.json";
 
 const TOOL_LABELS: Record<string, { label: string; icon: typeof ListChecks }> = {
   list_tasks: { label: "Consultando tarefas", icon: ListChecks },
